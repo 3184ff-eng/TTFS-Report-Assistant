@@ -82,7 +82,7 @@ Use dropdowns for constrained values where applicable:
 - Was water supply sufficient?
 - Cause of Fire
 
-The official `Number of Men Attending` area is split into `Professionals` and `Auxiliary` boxes. Capture those as separate fields and place their values in the matching boxes on the official form. Personnel names and numbers should be captured in the appropriate attending personnel sections.
+The official `Number of Men Attending` area is split into `Professionals` and `Auxiliary` count boxes. Capture those as separate count fields and place their values in the matching boxes on the official form. Personnel names, ranks, and service numbers must be captured separately under `Number of men attending / personnel details` and placed into the appropriate Officers Attending rows on the official PDF.
 
 ## AI Writing Improvement Rules
 
@@ -107,6 +107,8 @@ Writing modes:
 - Fire Prevention Standard
 
 The writing output must show Original Text, Improved Text, Missing Information, Quality Score, and Fire Prevention Readiness Score.
+
+OpenAI API calls must be made only from server-side application code using `OPENAI_API_KEY`. The API key must not be exposed to browser code.
 
 Version 1.1 scoring categories:
 

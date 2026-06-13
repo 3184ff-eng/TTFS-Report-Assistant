@@ -107,7 +107,7 @@ Station must be selected from a dropdown list of TTFS fire stations, not entered
 
 Use dropdowns for constrained official-form values where applicable, including How Call Received, Wind, Water Supply Sufficient, Watch, Station, Incident Type, and Cause of Fire.
 
-The official `Number of Men Attending` area is split into `Professionals` and `Auxiliary` boxes. Capture those as separate fields and place their values in the matching boxes on the official form.
+The official `Number of Men Attending` area is split into `Professionals` and `Auxiliary` count boxes. Capture those counts as separate fields and place their values in the matching boxes on the official form. Also capture a separate `Number of men attending / personnel details` field for service numbers, ranks, and names such as `3184 FF Mills, 3558 FF Small`; place those personnel details in the Officers Attending rows where appropriate.
 
 Incident-type prompts must be available for:
 
@@ -147,6 +147,8 @@ The writing engine must support three modes:
 Display Original Text, Improved Text, Missing Information, Quality Score, and Fire Prevention Readiness Score.
 
 Version 1.1 report scoring must use these categories: Administrative Data, Property Description, Extinguishment, Damage Description, Cause Analysis, and Officer Observations.
+
+OpenAI API integration must run through a server-side API route. Use `OPENAI_API_KEY` from the environment and never expose the API key in frontend code.
 
 The official TTFS form must remain unchanged. Writing improvement only improves wording that may later be placed into the form.
 

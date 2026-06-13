@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: __dirname
+  outputFileTracingRoot: new URL(".", import.meta.url).pathname
 };
 
-module.exports = nextConfig;
+export default nextConfig;

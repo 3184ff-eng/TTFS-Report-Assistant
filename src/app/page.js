@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
@@ -9,6 +9,7 @@ const causeClassifications = ["Natural", "Accidental", "Incendiary", "Undetermin
 const watchOptions = ["White Watch", "Black Watch", "Red Watch", "Blue Watch"];
 const howCallReceivedOptions = [
   "999/990 Emergency Call",
+  "Telephone via North Control",
   "Station Telephone",
   "Walk-in Report",
   "Police",
@@ -16,7 +17,7 @@ const howCallReceivedOptions = [
   "Disaster Management",
   "Other"
 ];
-const windOptions = ["Strong", "Average", "None"];
+const windOptions = ["Strong", "Average", "Light", "None"];
 const waterSupplyOptions = ["Yes", "No"];
 const writingModes = ["Grammar Correction", "Professional Rewrite", "Fire Prevention Standard"];
 const writingSections = [
@@ -53,10 +54,15 @@ const stationOptions = [
   "Tunapuna Fire Station",
   "Woodbrook Fire Station"
 ];
-const incidentTypes = ["House Fire", "Commercial Fire", "Vehicle Fire", "Light Pole Fire", "Bush Fire", "RTA", "MVF"];
+const incidentTypes = ["Structural Fire", "House Fire", "Commercial Fire", "Vehicle Fire", "Light Pole Fire", "Bush Fire", "RTA", "MVF"];
 const officialTemplatePath = "/templates/ttfs-fire-report-form.pdf";
 
 const incidentPrompts = {
+  "Structural Fire": [
+    "Confirm occupancy, construction type, number of storeys, affected room or area, and exposures.",
+    "Record appliances, water supply, hose lines or equipment used, extinguishment time, and overhaul checks.",
+    "Keep occupier, neighbour, utility, police, or other received information in Additional Information."
+  ],
   "House Fire": [
     "Confirm occupancy type, number of floors, construction material, and rooms/contents affected.",
     "Record hydrant distance, water supply used, appliances attending, and how the fire was extinguished.",
@@ -119,10 +125,32 @@ const initialForm = {
   appliancesAttending: "",
   officersAttending: "",
   seniorOfficersAttending: "",
+  personnelAttendingDetails: "",
   professionalsAttending: "",
   auxiliaryAttending: "",
-  casualties: "",
-  valuesDamageInsurance: "",
+  casualtyName1: "",
+  casualtyInjury1: "",
+  casualtyTreatedBy1: "",
+  casualtyName2: "",
+  casualtyInjury2: "",
+  casualtyTreatedBy2: "",
+  casualtyName3: "",
+  casualtyInjury3: "",
+  casualtyTreatedBy3: "",
+  casualtyName4: "",
+  casualtyInjury4: "",
+  casualtyTreatedBy4: "",
+  casualtyName5: "",
+  casualtyInjury5: "",
+  casualtyTreatedBy5: "",
+  casualtyName6: "",
+  casualtyInjury6: "",
+  casualtyTreatedBy6: "",
+  valueBuilding: "",
+  valueStock: "",
+  damageBuilding: "",
+  damageStock: "",
+  insuranceDetails: "",
   officersObservations: "",
   additionalInformation: "",
   dateOfFire: "",
@@ -186,16 +214,51 @@ const formFields = [
     mandatory: true,
     wide: true
   },
-  { name: "professionalsAttending", label: "Professionals attending", type: "text", mandatory: true },
-  { name: "auxiliaryAttending", label: "Auxiliary attending", type: "text", mandatory: true },
-  { name: "casualties", label: "Casualties", type: "textarea", mandatory: true, wide: true },
   {
-    name: "valuesDamageInsurance",
-    label: "Values/damage/insurance",
+    name: "personnelAttendingDetails",
+    label: "Number of men attending / personnel details",
     type: "textarea",
     mandatory: true,
-    wide: true
+    wide: true,
+    help: "Enter service numbers, ranks, and names, e.g. 3184 FF Mills, 3558 FF Small, 2467 FF John and 4567 FF Gram."
   },
+  {
+    name: "professionalsAttending",
+    label: "Professionals attending count",
+    type: "text",
+    mandatory: true,
+    help: "Enter the number for the Professionals box on the official form."
+  },
+  {
+    name: "auxiliaryAttending",
+    label: "Auxiliary attending count",
+    type: "text",
+    mandatory: true,
+    help: "Enter the number for the Auxiliary box on the official form."
+  },
+  { name: "casualtyName1", label: "Casualty 1 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury1", label: "Casualty 1 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy1", label: "Casualty 1 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName2", label: "Casualty 2 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury2", label: "Casualty 2 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy2", label: "Casualty 2 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName3", label: "Casualty 3 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury3", label: "Casualty 3 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy3", label: "Casualty 3 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName4", label: "Casualty 4 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury4", label: "Casualty 4 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy4", label: "Casualty 4 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName5", label: "Casualty 5 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury5", label: "Casualty 5 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy5", label: "Casualty 5 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName6", label: "Casualty 6 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury6", label: "Casualty 6 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy6", label: "Casualty 6 - Treated by", type: "text", mandatory: false },
+  { name: "valueBuilding", label: "Value of Building $", type: "text", mandatory: true },
+  { name: "valueStock", label: "Value of Stock $", type: "text", mandatory: true },
+  { name: "damageBuilding", label: "Damage to Building $", type: "text", mandatory: true },
+  { name: "damageStock", label: "Damage to Stock $", type: "text", mandatory: true },
+  { name: "insuranceDetails", label: "Building and Stock Insured as follows", type: "textarea", mandatory: true, wide: true },
   {
     name: "officersObservations",
     label: "Officer's observations",
@@ -220,7 +283,14 @@ const formFields = [
 
 const mandatoryFields = formFields.filter((field) => field.mandatory);
 const quickSelectFields = formFields.filter((field) => ["watch", "incidentType"].includes(field.name));
-const reportFormFields = formFields.filter((field) => !["watch", "incidentType"].includes(field.name));
+const casualtyFieldPattern = /^casualty(?:Name|Injury|TreatedBy)\d$/;
+const valueDamageFieldNames = ["valueBuilding", "valueStock", "damageBuilding", "damageStock", "insuranceDetails"];
+const reportFormFields = formFields.filter(
+  (field) =>
+    !["watch", "incidentType"].includes(field.name) &&
+    !casualtyFieldPattern.test(field.name) &&
+    !valueDamageFieldNames.includes(field.name)
+);
 const officialPrintFields = [
   ["Report Number", "reportNumber"],
   ["Station", "station"],
@@ -246,10 +316,14 @@ const officialPrintFields = [
   ["Appliances attending", "appliancesAttending"],
   ["Officers attending", "officersAttending"],
   ["FS/SO and FS/O attending", "seniorOfficersAttending"],
-  ["Professionals attending", "professionalsAttending"],
-  ["Auxiliary attending", "auxiliaryAttending"],
-  ["Casualties", "casualties"],
-  ["Values/damage/insurance", "valuesDamageInsurance"],
+  ["Number of men attending / personnel details", "personnelAttendingDetails"],
+  ["Professionals attending count", "professionalsAttending"],
+  ["Auxiliary attending count", "auxiliaryAttending"],
+  ["Value of Building", "valueBuilding"],
+  ["Value of Stock", "valueStock"],
+  ["Damage to Building", "damageBuilding"],
+  ["Damage to Stock", "damageStock"],
+  ["Building and Stock Insured as follows", "insuranceDetails"],
   ["Officer's observations", "officersObservations"]
 ];
 
@@ -260,10 +334,13 @@ const appendixLimits = {
   appliancesAttending: 220,
   officersAttending: 220,
   seniorOfficersAttending: 180,
-  casualties: 200,
-  valuesDamageInsurance: 240,
+  personnelAttendingDetails: 260,
+  insuranceDetails: 240,
   officersObservations: 520
 };
+
+const pdfFormFontSize = 12;
+const pdfAppendixFontSize = 12;
 
 function valueOrMissing(value) {
   return value.trim() || "[Missing]";
@@ -271,6 +348,48 @@ function valueOrMissing(value) {
 
 function compactLine(label, value) {
   return `${label}: ${valueOrMissing(value)}`;
+}
+
+function getCasualtyRows(form) {
+  return Array.from({ length: 6 }, (_, index) => {
+    const row = index + 1;
+    return {
+      name: String(form[`casualtyName${row}`] || "").trim(),
+      injury: String(form[`casualtyInjury${row}`] || "").trim(),
+      treatedBy: String(form[`casualtyTreatedBy${row}`] || "").trim()
+    };
+  });
+}
+
+function formatCasualties(form) {
+  const rows = getCasualtyRows(form)
+    .map((row, index) => ({ ...row, index: index + 1 }))
+    .filter((row) => row.name || row.injury || row.treatedBy);
+
+  if (!rows.length) {
+    return "No casualties entered.";
+  }
+
+  return rows
+    .map((row) => {
+      const parts = [
+        row.name ? `Name: ${row.name}` : "Name: [Missing]",
+        row.injury ? `Injuries: ${row.injury}` : "Injuries: [Missing]",
+        row.treatedBy ? `Treated by: ${row.treatedBy}` : "Treated by: [Missing]"
+      ];
+      return `Casualty ${row.index} - ${parts.join("; ")}`;
+    })
+    .join("\n");
+}
+
+function formatValuesDamageInsurance(form) {
+  return [
+    compactLine("Value of Building $", form.valueBuilding),
+    compactLine("Value of Stock $", form.valueStock),
+    compactLine("Damage to Building $", form.damageBuilding),
+    compactLine("Damage to Stock $", form.damageStock),
+    compactLine("Building and Stock Insured as follows", form.insuranceDetails)
+  ].join("\n");
 }
 
 function missingMandatoryFields(form) {
@@ -455,10 +574,14 @@ function buildFireReport(form) {
     compactLine("Appliances attending", form.appliancesAttending),
     compactLine("Officers attending", form.officersAttending),
     compactLine("FS/SO and FS/O attending", form.seniorOfficersAttending),
-    compactLine("Professionals attending", form.professionalsAttending),
-    compactLine("Auxiliary attending", form.auxiliaryAttending),
-    compactLine("Casualties", form.casualties),
-    compactLine("Values/damage/insurance", form.valuesDamageInsurance),
+    compactLine("Number of men attending / personnel details", form.personnelAttendingDetails),
+    compactLine("Professionals attending count", form.professionalsAttending),
+    compactLine("Auxiliary attending count", form.auxiliaryAttending),
+    "CASUALTIES",
+    formatCasualties(form),
+    "",
+    "VALUES / DAMAGE / INSURANCE",
+    formatValuesDamageInsurance(form),
     "",
     "OFFICER'S OBSERVATIONS",
     valueOrMissing(form.officersObservations),
@@ -726,6 +849,31 @@ function improveWritingNotes(notes, mode) {
   return result;
 }
 
+function improveFormFieldsLocally(form) {
+  const textFields = [
+    "typeOfProperty",
+    "howFireExtinguished",
+    "descriptionOfDamage",
+    "insuranceDetails",
+    "officersObservations",
+    "additionalInformation"
+  ];
+  const fields = {};
+
+  textFields.forEach((field) => {
+    fields[field] = splitRoughNotes(form[field] || "").map(professionalizeSentence).join(" ");
+  });
+
+  ["appliancesAttending", "officersAttending", "seniorOfficersAttending", "personnelAttendingDetails"].forEach((field) => {
+    fields[field] = String(form[field] || "").replace(/\s+/g, " ").replace(/\s+,/g, ",").trim();
+  });
+
+  return {
+    fields,
+    concerns: ["Local cleanup was used. Review all improved fields before export."]
+  };
+}
+
 function formatImprovedWritingResult(result) {
   return writingSections
     .map((section) => {
@@ -739,16 +887,16 @@ const bulkFieldAliases = [
   ["reportNumber", ["report number", "report no", "fire report number", "no"]],
   ["station", ["station", "fire station"]],
   ["watch", ["watch"]],
-  ["incidentType", ["incident type", "type of incident", "incident"]],
+  ["incidentType", ["incident type", "type of incident", "incident", "type of call"]],
   ["wind", ["wind"]],
   ["dateCallReceived", ["date call received", "date received", "call date"]],
   ["timeCallReceived", ["time call received", "time received", "call time"]],
-  ["howCallReceived", ["how call received", "call received by", "received by"]],
+  ["howCallReceived", ["how call received", "call received by", "received by", "how call was received"]],
   ["addressGiven", ["address given", "given address"]],
   ["actualAddress", ["actual address", "actual address of fire", "address of fire", "fire address"]],
   ["timeApplianceLeftStation", ["time appliance left station", "appliance left", "left station"]],
-  ["approxDistanceToFire", ["approx distance to fire", "distance to fire"]],
-  ["ownerOccupier", ["owner", "owner occupier", "owner/occupier", "occupier", "owner's name"]],
+  ["approxDistanceToFire", ["approx distance to fire", "approximate distance to fire", "distance to fire"]],
+  ["ownerOccupier", ["owner", "owner occupier", "owner / occupier", "owner/occupier", "occupier", "owner's name"]],
   ["hydrantDistance", ["hydrant distance", "distance of nearest hydrant", "nearest hydrant"]],
   ["causeOfFire", ["cause", "cause of fire", "cause determination"]],
   ["waterSupply", ["water supply", "water supply sufficient", "was water supply sufficient"]],
@@ -760,10 +908,20 @@ const bulkFieldAliases = [
   ["appliancesAttending", ["appliances attending", "appliances"]],
   ["officersAttending", ["officers attending", "officers"]],
   ["seniorOfficersAttending", ["fs/so and fs/o attending", "f.s.s.o", "senior officers", "fsso"]],
-  ["professionalsAttending", ["professionals", "professionals attending"]],
-  ["auxiliaryAttending", ["auxiliary", "auxillary", "auxiliary attending"]],
-  ["casualties", ["casualties", "injuries"]],
-  ["valuesDamageInsurance", ["values damage insurance", "insurance", "value", "values"]],
+  [
+    "personnelAttendingDetails",
+    ["number of men attending", "number of men crew", "number of men / crew", "men attending", "personnel attending", "personnel details", "crew attending"]
+  ],
+  ["professionalsAttending", ["professionals", "professionals attending", "professionals attending count"]],
+  ["auxiliaryAttending", ["auxiliary", "auxillary", "auxiliary attending", "auxiliary attending count"]],
+  ["casualtyName1", ["casualty 1 name", "name row 1", "casualty name"]],
+  ["casualtyInjury1", ["casualty 1 injury", "brief description of injuries row 1", "injury row 1"]],
+  ["casualtyTreatedBy1", ["casualty 1 treated by", "treated by row 1"]],
+  ["valueBuilding", ["value of building", "estimated value of building", "building value"]],
+  ["valueStock", ["value of stock", "estimated value of contents", "estimated value of stock", "stock value", "contents value"]],
+  ["damageBuilding", ["damage to building", "estimated fire damage", "building damage"]],
+  ["damageStock", ["damage to stock", "stock damage", "contents damage"]],
+  ["insuranceDetails", ["building and stock insured as follows", "values damage and insurance", "values damage insurance", "insurance", "insurance details"]],
   ["officersObservations", ["officer observations", "officer's observations", "observations"]],
   ["additionalInformation", ["additional information", "additional info", "witness", "information received"]],
   ["dateOfFire", ["date of fire", "fire date"]],
@@ -778,9 +936,19 @@ function normalizeLabel(value) {
 
 function findFieldByLabel(label) {
   const normalizedLabel = normalizeLabel(label);
+  const exactMatch = bulkFieldAliases.find(([, aliases]) =>
+    aliases.some((alias) => normalizedLabel === normalizeLabel(alias))
+  );
+
+  if (exactMatch) {
+    return exactMatch[0];
+  }
 
   return bulkFieldAliases.find(([, aliases]) =>
-    aliases.some((alias) => normalizedLabel === normalizeLabel(alias) || normalizedLabel.includes(normalizeLabel(alias)))
+    aliases.some((alias) => {
+      const normalizedAlias = normalizeLabel(alias);
+      return normalizedAlias.length >= 9 && normalizedLabel.includes(normalizedAlias);
+    })
   )?.[0];
 }
 
@@ -792,20 +960,35 @@ function findOptionMatch(text, options) {
 function extractLabeledData(lines) {
   const data = {};
   const usedLines = new Set();
+  let activeField = "";
 
   lines.forEach((line, index) => {
-    const match = line.match(/^([^:=-]{2,45})\s*[:=-]\s*(.+)$/);
+    const match = line.match(/^([^:=-]{2,70})\s*[:=-]\s*(.*)$/);
     if (!match) {
+      if (activeField && line) {
+        data[activeField] = `${data[activeField]} ${line}`.trim();
+        usedLines.add(index);
+      }
       return;
     }
 
     const field = findFieldByLabel(match[1]);
     if (!field) {
+      activeField = "";
       return;
     }
 
-    data[field] = match[2].trim();
+    const value = match[2].trim();
+    data[field] = value || data[field] || "";
+    activeField = field;
     usedLines.add(index);
+  });
+
+  Object.keys(data).forEach((field) => {
+    data[field] = data[field].trim();
+    if (!data[field]) {
+      delete data[field];
+    }
   });
 
   return { data, usedLines };
@@ -834,9 +1017,102 @@ function normalizeDateForInput(day, monthName, year) {
   return `${year}-${month}-${String(day).padStart(2, "0")}`;
 }
 
+function normalizeDateValue(value) {
+  const text = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text;
+  }
+
+  const words = text.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s*,?\s+(\d{4})$/i);
+  if (words) {
+    return normalizeDateForInput(words[1], words[2], words[3]);
+  }
+
+  return text;
+}
+
+function normalizeTimeValue(value) {
+  const text = String(value || "").trim();
+  const compact = text.match(/^(\d{1,2})(\d{2})\s*(?:hrs?|hours)?$/i);
+  if (compact) {
+    return `${compact[1].padStart(2, "0")}:${compact[2]}`;
+  }
+
+  const colon = text.match(/^(\d{1,2}):(\d{2})/);
+  if (colon) {
+    return `${colon[1].padStart(2, "0")}:${colon[2]}`;
+  }
+
+  return text;
+}
+
 function extractBetween(text, startPattern, endPattern) {
   const match = text.match(new RegExp(`${startPattern}([\\s\\S]*?)${endPattern}`, "i"));
   return match?.[1]?.replace(/\s+/g, " ").trim() || "";
+}
+
+function cleanMoneyValue(value) {
+  const text = String(value || "").trim();
+  const amount = text.match(/(?:TT\$|\$)?\s*([0-9][0-9,]*(?:\.\d{2})?)/i);
+  return amount ? amount[1] : text.replace(/\bTT\$/i, "").replace(/^\$/, "").trim();
+}
+
+function extractMoneyLine(text, pattern) {
+  const match = String(text || "").match(pattern);
+  return match ? cleanMoneyValue(match[1]) : "";
+}
+
+function applyStructuredFieldCleanup(data) {
+  const cleaned = { ...data };
+  const insuranceText = cleaned.insuranceDetails || "";
+
+  if (insuranceText) {
+    cleaned.valueBuilding ||= extractMoneyLine(insuranceText, /estimated\s+value\s+of\s+building\s*:\s*(?:TT\$|\$)?\s*([0-9,]+(?:\.\d{2})?)/i);
+    cleaned.valueStock ||= extractMoneyLine(insuranceText, /estimated\s+value\s+of\s+(?:contents|stock)\s*:\s*(?:TT\$|\$)?\s*([0-9,]+(?:\.\d{2})?)/i);
+    cleaned.damageBuilding ||= extractMoneyLine(insuranceText, /estimated\s+fire\s+damage\s*:\s*(?:TT\$|\$)?\s*([0-9,]+(?:\.\d{2})?)/i);
+    cleaned.insuranceDetails = insuranceText
+      .split(/(?=Estimated value of building:|Estimated value of contents:|Estimated value of stock:|Estimated fire damage:)/i)
+      .filter((line) => !/^Estimated\s+(?:value|fire damage)/i.test(line.trim()))
+      .join(" ")
+      .trim() || insuranceText;
+  }
+
+  ["valueBuilding", "valueStock", "damageBuilding", "damageStock"].forEach((field) => {
+    if (cleaned[field]) {
+      const rawValue = String(cleaned[field]);
+      const amount = rawValue.match(/(?:TT\$|\$)?\s*[0-9][0-9,]*(?:\.\d{2})?/i);
+      const trailingText = amount ? rawValue.slice(amount.index + amount[0].length).trim() : "";
+      if (trailingText && /[A-Za-z]/.test(trailingText)) {
+        cleaned.insuranceDetails = `${cleaned.insuranceDetails || ""} ${trailingText}`.trim();
+      }
+      cleaned[field] = cleanMoneyValue(cleaned[field]);
+    }
+  });
+
+  if (/^(yes|sufficient)$/i.test(cleaned.waterSupply || "")) {
+    cleaned.waterSupply = "Yes";
+  } else if (/^(no|insufficient)$/i.test(cleaned.waterSupply || "")) {
+    cleaned.waterSupply = "No";
+  }
+
+  if (cleaned.personnelAttendingDetails && /^\d+$/.test(cleaned.personnelAttendingDetails)) {
+    cleaned.professionalsAttending ||= cleaned.personnelAttendingDetails;
+    delete cleaned.personnelAttendingDetails;
+  }
+
+  ["dateCallReceived", "dateOfFire", "dateOfReport"].forEach((field) => {
+    if (cleaned[field]) {
+      cleaned[field] = normalizeDateValue(cleaned[field]);
+    }
+  });
+
+  ["timeCallReceived", "timeApplianceLeftStation"].forEach((field) => {
+    if (cleaned[field]) {
+      cleaned[field] = normalizeTimeValue(cleaned[field]);
+    }
+  });
+
+  return cleaned;
 }
 
 function extractNarrativeData(notes) {
@@ -862,7 +1138,9 @@ function extractNarrativeData(notes) {
   }
 
   const addressMatch =
-    notes.match(/fire call at\s+([\s\S]*?)(?:\.\s+Involved was|\n\s*Involved was|Involved was|$)/i) ||
+    notes.match(
+      /fire call at\s+([\s\S]*?)(?:\.\s+(?:Involved was|Number of men attending|Men attending|Personnel attending)|\n\s*(?:Involved was|Number of men attending|Men attending|Personnel attending)|Involved was|$)/i
+    ) ||
     notes.match(/(?:address given|actual address|address of fire)\s*[:=-]\s*([^\n]+)/i);
   if (addressMatch) {
     data.addressGiven = addressMatch[1].replace(/\s+/g, " ").replace(/\.$/, "").trim();
@@ -883,6 +1161,13 @@ function extractNarrativeData(notes) {
     data.officersAttending = [...new Set(officers)].join(", ");
   }
 
+  const personnel = [
+    ...notes.matchAll(/#?\s*(\d{3,5})\s+(FF|F\/F|Firefighter|Fire\s*fighter|LFF|Sub Officer|Station Officer)\s+([A-Za-z.'-]+)/gi)
+  ].map((match) => `${match[1]} ${match[2].replace(/fire\s*fighter/i, "Firefighter")} ${match[3]}`);
+  if (personnel.length) {
+    data.personnelAttendingDetails = [...new Set(personnel)].join(", ");
+  }
+
   const inChargeMatch = notes.match(/#\s*(\d+)\s+Fire\s*fighter\s+([A-Za-z.' -]+?)\s+in charge/i);
   if (inChargeMatch) {
     data.seniorOfficersAttending = `#${inChargeMatch[1]} Firefighter ${inChargeMatch[2].trim()} in charge`;
@@ -895,17 +1180,37 @@ function extractNarrativeData(notes) {
 
   const valuesDamage = extractBetween(notes, "valued at\\s+", "A fire investigation was conducted");
   if (valuesDamage) {
-    data.valuesDamageInsurance = improveSentence(valuesDamage);
+    data.insuranceDetails = improveSentence(valuesDamage);
   }
 
   const damageParts = [];
+  const buildingValue = notes.match(/valued\s+at[\s\S]{0,140}?\(\$?([0-9,]+(?:\.\d{2})?)\)/i);
+  const stockValue = notes.match(/value\s+of\s+the\s+stock\s+was[\s\S]{0,140}?\(\$?([0-9,]+(?:\.\d{2})?)\)/i);
   const buildingDamage = notes.match(/damages?\s+to\s+the\s+building\s+estimated\s+at\s+([^.)]+(?:\([^)]*\))?)/i);
   const stockDamage = notes.match(/damages?\s+to\s+the\s+stock\s+valued\s+approximately\s+([^.)]+(?:\([^)]*\))?)/i);
+  if (buildingValue) {
+    data.valueBuilding = cleanMoneyValue(buildingValue[1]);
+  }
+  if (stockValue) {
+    data.valueStock = cleanMoneyValue(stockValue[1]);
+  }
   if (buildingDamage) {
     damageParts.push(`Damage to the building was estimated at ${buildingDamage[1].trim()}.`);
+    const amount =
+      buildingDamage[1].match(/\(\$?([0-9,]+(?:\.\d{2})?)\)/) ||
+      buildingDamage[1].match(/\$?\s*([0-9][0-9,]*(?:\.\d{2})?)/);
+    if (amount) {
+      data.damageBuilding = cleanMoneyValue(amount[1]);
+    }
   }
   if (stockDamage) {
     damageParts.push(`Damage to the stock was valued approximately ${stockDamage[1].trim()}.`);
+    const amount =
+      stockDamage[1].match(/\(\$?([0-9,]+(?:\.\d{2})?)\)/) ||
+      stockDamage[1].match(/\$?\s*([0-9][0-9,]*(?:\.\d{2})?)/);
+    if (amount) {
+      data.damageStock = cleanMoneyValue(amount[1]);
+    }
   }
   if (damageParts.length) {
     data.descriptionOfDamage = damageParts.join(" ");
@@ -1028,7 +1333,7 @@ function inferBulkData(notes) {
   });
 
   return {
-    data,
+    data: applyStructuredFieldCleanup(data),
     concerns: [...new Set(concerns)]
   };
 }
@@ -1070,7 +1375,7 @@ function FieldInput({ field, value, onChange }) {
       <span>
         {field.label} <em>{requiredText}</em>
       </span>
-      <input type={field.type} name={field.name} value={value} onChange={onChange} />
+      <input type={field.type} name={field.name} value={value} onChange={onChange} placeholder={field.help || ""} />
     </label>
   );
 }
@@ -1104,16 +1409,35 @@ function splitForFields(value, lengths) {
 
 function splitListForRows(value, count) {
   const items = String(value || "")
+    .replace(/\s+\band\b\s+(?=#?\d{3,5}\s)/gi, ", ")
     .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
   return Array.from({ length: count }, (_, index) => items[index] || "");
 }
 
-function setPdfText(form, name, value, fontSize = 9) {
+function fitFontSize(value, baseSize = 9, thresholds = [24, 38, 54]) {
+  const length = String(value || "").length;
+  if (length > thresholds[2]) {
+    return Math.max(8.5, baseSize - 2.5);
+  }
+  if (length > thresholds[1]) {
+    return Math.max(9, baseSize - 1.75);
+  }
+  if (length > thresholds[0]) {
+    return Math.max(10, baseSize - 1);
+  }
+  return baseSize;
+}
+
+function setPdfText(form, name, value, fontSize = pdfFormFontSize, options = {}) {
   const field = form.getTextField(name);
+  if (options.multiline) {
+    field.enableMultiline();
+  }
+  const targetFontSize = options.allowSmaller ? fontSize : Math.max(fontSize, pdfFormFontSize);
   field.setText(String(value || ""));
-  field.setFontSize(fontSize);
+  field.setFontSize(options.fit === false ? targetFontSize : fitFontSize(value, targetFontSize, options.thresholds));
 }
 
 function setPdfCheck(pdfForm, name, checked) {
@@ -1130,18 +1454,100 @@ function extractCurrencyAfter(text, label) {
   return match ? `$${match[1]}` : "";
 }
 
+function currencyValue(value, fallbackText, fallbackLabel) {
+  const direct = String(value || "").replace(/^\$/, "").trim();
+  if (direct) {
+    return direct;
+  }
+  return extractCurrencyAfter(fallbackText, fallbackLabel).replace(/^\$/, "");
+}
+
+function wrapPdfText(text, maxChars) {
+  const lines = [];
+  String(text || "")
+    .split("\n")
+    .forEach((paragraph) => {
+      const words = paragraph.trim().split(/\s+/).filter(Boolean);
+      let line = "";
+      words.forEach((word) => {
+        const nextLine = `${line} ${word}`.trim();
+        if (nextLine.length > maxChars && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = nextLine;
+        }
+      });
+      if (line) {
+        lines.push(line);
+      }
+    });
+  return lines;
+}
+
+function drawPdfLines(page, text, x, y, options = {}) {
+  const { font, size = 10, lineHeight = 13, maxChars = 92, maxLines = 50 } = options;
+  wrapPdfText(text, maxChars)
+    .slice(0, maxLines)
+    .forEach((line, index) => {
+      page.drawText(line, { x, y: y - index * lineHeight, size, font });
+    });
+}
+
+function addAppendixPages(pdfDoc, formData, font) {
+  const appendices = buildAppendices(formData);
+  appendices.forEach((appendix, index) => {
+    const page = pdfDoc.addPage([612, 792]);
+    const top = 742;
+    page.drawText(`APPENDIX ${index + 1}`, { x: 246, y: top, size: 14, font });
+    page.drawText(`Fire Report Number: ${formData.reportNumber || "[Missing]"}`, {
+      x: 54,
+      y: top - 38,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Address of Fire: ${formData.actualAddress || formData.addressGiven || "[Missing]"}`, {
+      x: 54,
+      y: top - 56,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Date of Fire: ${formData.dateOfFire || formData.dateCallReceived || "[Missing]"}`, {
+      x: 54,
+      y: top - 74,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Date of Report: ${formData.dateOfReport || "[Missing]"}`, {
+      x: 330,
+      y: top - 74,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Section Continued: ${appendix.section}`, { x: 54, y: top - 104, size: pdfAppendixFontSize, font });
+    drawPdfLines(page, appendix.text, 54, top - 132, {
+      font,
+      size: pdfAppendixFontSize,
+      lineHeight: 15,
+      maxChars: 86,
+      maxLines: 34
+    });
+    page.drawText("Officer Signature: ______________________________", {
+      x: 54,
+      y: 92,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText("Rank: ______________________________", { x: 348, y: 92, size: pdfAppendixFontSize, font });
+  });
+}
+
 async function createFilledOfficialPdf(formData) {
   const existingPdfBytes = await fetch("/templates/ttfs-fire-report-form.pdf").then((response) => response.arrayBuffer());
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
   pdfDoc.registerFontkit(fontkit);
   const pdfForm = pdfDoc.getForm();
-  let formFont;
-  try {
-    const fontBytes = await fetch("/fonts/times-new-roman.ttf").then((response) => response.arrayBuffer());
-    formFont = await pdfDoc.embedFont(fontBytes, { subset: true });
-  } catch {
-    formFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  }
+  const formFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
   const addressGiven = splitForFields(formData.addressGiven, [30, 44, 44]);
   const actualAddress = splitForFields(formData.actualAddress, [26, 44, 44]);
@@ -1152,56 +1558,66 @@ async function createFilledOfficialPdf(formData) {
   const appliances = splitListForRows(formData.appliancesAttending, 5);
   const officers = splitListForRows(formData.officersAttending, 5);
   const seniorOfficers = splitListForRows(formData.seniorOfficersAttending, 5);
-  const insurance = splitForFields(formData.valuesDamageInsurance, [90, 90, 90]);
+  const personnelLines = splitForFields(formData.personnelAttendingDetails, [82, 82]);
+  const insurance = splitForFields(formData.insuranceDetails || formData.valuesDamageInsurance, [90, 90, 90]);
+  const casualtyRows = getCasualtyRows(formData);
 
-  setPdfText(pdfForm, "No", formData.reportNumber);
-  setPdfText(pdfForm, "Text7", formData.station, 10);
-  setPdfText(pdfForm, "Date Call Received", formData.dateCallReceived);
-  setPdfText(pdfForm, "Time Call Received", formData.timeCallReceived);
-  setPdfText(pdfForm, "How Call Received", formData.howCallReceived);
-  setPdfText(pdfForm, "Address Given 1", addressGiven[0]);
-  setPdfText(pdfForm, "Address Given 2", addressGiven[1]);
-  setPdfText(pdfForm, "Address Given 3", addressGiven[2]);
-  setPdfText(pdfForm, "Actual Address of Fire 1", actualAddress[0]);
-  setPdfText(pdfForm, "Actual Address of Fire 2", actualAddress[1]);
-  setPdfText(pdfForm, "Actual Address of Fire 3", actualAddress[2]);
-  setPdfText(pdfForm, "Time Appliance Left Station", formData.timeApplianceLeftStation);
-  setPdfText(pdfForm, "Approx Distance to Fire 1", distance[0]);
-  setPdfText(pdfForm, "Approx Distance to Fire 2", distance[1]);
-  setPdfText(pdfForm, "Owners Name", owner[0]);
-  setPdfText(pdfForm, "undefined", owner[1]);
-  setPdfText(pdfForm, "undefined_2", owner[2]);
-  setPdfText(pdfForm, "Distance of nearest Hydrant to Fire", hydrant[0]);
-  setPdfText(pdfForm, "Cause of Fire 1", cause[0]);
-  setPdfText(pdfForm, "Cause of Fire 2", cause[1]);
+  setPdfText(pdfForm, "No", formData.reportNumber, 9);
+  setPdfText(pdfForm, "Text7", formData.station, 9);
+  setPdfText(pdfForm, "Date Call Received", formData.dateCallReceived, 9);
+  setPdfText(pdfForm, "Time Call Received", formData.timeCallReceived, 9);
+  setPdfText(pdfForm, "How Call Received", formData.howCallReceived, 8.5);
+  setPdfText(pdfForm, "Address Given 1", addressGiven[0], 8.4);
+  setPdfText(pdfForm, "Address Given 2", addressGiven[1], 8.4);
+  setPdfText(pdfForm, "Address Given 3", addressGiven[2], 8.4);
+  setPdfText(pdfForm, "Actual Address of Fire 1", actualAddress[0], 8.4);
+  setPdfText(pdfForm, "Actual Address of Fire 2", actualAddress[1], 8.4);
+  setPdfText(pdfForm, "Actual Address of Fire 3", actualAddress[2], 8.4);
+  setPdfText(pdfForm, "Time Appliance Left Station", formData.timeApplianceLeftStation, 9);
+  setPdfText(pdfForm, "Approx Distance to Fire 1", distance[0], 8.4);
+  setPdfText(pdfForm, "Approx Distance to Fire 2", distance[1], 8.4);
+  setPdfText(pdfForm, "Owners Name", owner[0], 8.4);
+  setPdfText(pdfForm, "undefined", owner[1], 8.4);
+  setPdfText(pdfForm, "undefined_2", owner[2], 8.4);
+  setPdfText(pdfForm, "Distance of nearest Hydrant to Fire", hydrant[0], 8.4);
+  setPdfText(pdfForm, "Cause of Fire 1", cause[0], 8.4);
+  setPdfText(pdfForm, "Cause of Fire 2", cause[1], 8.4);
   setPdfCheck(pdfForm, "Check Box1", formData.waterSupply === "Yes");
   setPdfCheck(pdfForm, "Check Box2", formData.waterSupply === "No");
-  setPdfText(pdfForm, "LPM Available", formData.lpmAvailable);
-  setPdfText(pdfForm, "LPM Required", formData.lpmRequired);
-  setPdfText(pdfForm, "Text4", truncateForForm("typeOfProperty", formData.typeOfProperty), 8);
-  setPdfText(pdfForm, "Text5", truncateForForm("howFireExtinguished", formData.howFireExtinguished), 8);
-  setPdfText(pdfForm, "Text6", truncateForForm("descriptionOfDamage", formData.descriptionOfDamage), 8);
+  setPdfText(pdfForm, "LPM Available", formData.lpmAvailable, 9);
+  setPdfText(pdfForm, "LPM Required", formData.lpmRequired, 9);
+  setPdfText(pdfForm, "Text4", truncateForForm("typeOfProperty", formData.typeOfProperty), 7.4, { multiline: true });
+  setPdfText(pdfForm, "Text5", truncateForForm("howFireExtinguished", formData.howFireExtinguished), 7.4, { multiline: true });
+  setPdfText(pdfForm, "Text6", truncateForForm("descriptionOfDamage", formData.descriptionOfDamage), 7.4, { multiline: true });
 
   for (let index = 0; index < 5; index += 1) {
-    setPdfText(pdfForm, `Appliances AttendingRow${index + 1}`, appliances[index]);
-    setPdfText(pdfForm, `Officers AttendingRow${index + 1}`, officers[index]);
-    setPdfText(pdfForm, `FSSO  FSOs AttendingRow${index + 1}`, seniorOfficers[index]);
+    setPdfText(pdfForm, `Appliances AttendingRow${index + 1}`, appliances[index], 8);
+    setPdfText(pdfForm, `Officers AttendingRow${index + 1}`, officers[index], 8);
+    setPdfText(pdfForm, `FSSO  FSOs AttendingRow${index + 1}`, seniorOfficers[index], 8);
   }
 
-  setPdfText(pdfForm, "Text1", formData.professionalsAttending);
-  setPdfText(pdfForm, "Text2", formData.auxiliaryAttending);
-  setPdfText(pdfForm, "Date", formData.dateOfReport);
-  setPdfText(pdfForm, "Rank", formData.rank);
-  setPdfText(pdfForm, "Value of Building", extractCurrencyAfter(formData.valuesDamageInsurance, "Value of Building"));
-  setPdfText(pdfForm, "Value of Stock", extractCurrencyAfter(formData.valuesDamageInsurance, "Value of Stock"));
-  setPdfText(pdfForm, "Damage to Building", extractCurrencyAfter(formData.valuesDamageInsurance, "Damage to Building"));
-  setPdfText(pdfForm, "Damage to Stock", extractCurrencyAfter(formData.valuesDamageInsurance, "Damage to Stock"));
-  setPdfText(pdfForm, "Building and Stock Insured as follows 1", insurance[0]);
-  setPdfText(pdfForm, "Building and Stock Insured as follows 2", insurance[1]);
-  setPdfText(pdfForm, "Building and Stock Insured as follows 3", insurance[2]);
-  setPdfText(pdfForm, "Text3", truncateForForm("officersObservations", formData.officersObservations), 8);
+  setPdfText(pdfForm, "Number of Men Attending 1", personnelLines[0], 8);
+  setPdfText(pdfForm, "Number of Men Attending 2", personnelLines[1], 8);
+  setPdfText(pdfForm, "Text1", formData.professionalsAttending, 9, { fit: false });
+  setPdfText(pdfForm, "Text2", formData.auxiliaryAttending, 9, { fit: false });
+  setPdfText(pdfForm, "Date", formData.dateOfReport, 9);
+  setPdfText(pdfForm, "Rank", formData.rank, 9);
+  casualtyRows.forEach((row, index) => {
+    setPdfText(pdfForm, `NameRow${index + 1}`, row.name, 7.8);
+    setPdfText(pdfForm, `Brief description of injuriesRow${index + 1}`, row.injury, 7.8);
+    setPdfText(pdfForm, `Treated byRow${index + 1}`, row.treatedBy, 7.8);
+  });
+  setPdfText(pdfForm, "Value of Building", currencyValue(formData.valueBuilding, formData.valuesDamageInsurance, "Value of Building"));
+  setPdfText(pdfForm, "Value of Stock", currencyValue(formData.valueStock, formData.valuesDamageInsurance, "Value of Stock"));
+  setPdfText(pdfForm, "Damage to Building", currencyValue(formData.damageBuilding, formData.valuesDamageInsurance, "Damage to Building"));
+  setPdfText(pdfForm, "Damage to Stock", currencyValue(formData.damageStock, formData.valuesDamageInsurance, "Damage to Stock"));
+  setPdfText(pdfForm, "Building and Stock Insured as follows 1", insurance[0], 8);
+  setPdfText(pdfForm, "Building and Stock Insured as follows 2", insurance[1], 8);
+  setPdfText(pdfForm, "Building and Stock Insured as follows 3", insurance[2], 8);
+  setPdfText(pdfForm, "Text3", truncateForForm("officersObservations", formData.officersObservations), 7.4, { multiline: true });
 
   pdfForm.updateFieldAppearances(formFont);
+  addAppendixPages(pdfDoc, formData, formFont);
 
   return pdfDoc.save();
 }
@@ -1215,8 +1631,14 @@ export default function Home() {
   const [roughWritingNotes, setRoughWritingNotes] = useState("");
   const [writingResult, setWritingResult] = useState(null);
   const [writingMode, setWritingMode] = useState(writingModes[1]);
+  const [writingStatus, setWritingStatus] = useState("");
+  const [writingLoading, setWritingLoading] = useState(false);
+  const [fieldImproveStatus, setFieldImproveStatus] = useState("");
+  const [fieldImproveLoading, setFieldImproveLoading] = useState(false);
+  const [fieldImproveConcerns, setFieldImproveConcerns] = useState([]);
   const [bulkNotes, setBulkNotes] = useState("");
   const [bulkResult, setBulkResult] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const warnings = useMemo(() => buildValidationWarnings(form), [form]);
   const categoryScores = useMemo(() => calculateCategoryScores(form, warnings), [form, warnings]);
@@ -1233,26 +1655,109 @@ export default function Home() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  function handleImproveWriting() {
-    setWritingResult(improveWritingNotes(roughWritingNotes, writingMode));
+  async function handleImproveWriting() {
+    setWritingLoading(true);
+    setWritingStatus("Improving writing with the server-side AI assistant...");
+
+    try {
+      const response = await fetch("/api/improve-writing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: roughWritingNotes, mode: writingMode })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The AI Writing Assistant returned an unexpected server response." };
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI writing request failed.");
+      }
+
+      setWritingResult(result);
+      setWritingStatus("AI writing improvement complete.");
+    } catch (error) {
+      setWritingResult(improveWritingNotes(roughWritingNotes, writingMode));
+      setWritingStatus(`${error.message} Local fallback was used.`);
+    } finally {
+      setWritingLoading(false);
+    }
   }
 
-  function handleAutoFillForm() {
-    const result = inferBulkData(bulkNotes);
-    setForm((current) => ({ ...current, ...result.data }));
-    setBulkResult(result);
+  async function handleImproveAllFields() {
+    setFieldImproveLoading(true);
+    setFieldImproveStatus("Improving official form field wording with the server-side AI assistant...");
+    setFieldImproveConcerns([]);
+
+    try {
+      const response = await fetch("/api/improve-fields", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The form field AI assistant returned an unexpected server response." };
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI form field improvement failed.");
+      }
+
+      setForm((current) => ({ ...current, ...result.fields }));
+      setFieldImproveConcerns(result.concerns || []);
+      setFieldImproveStatus("Official form field wording improved. Review highlighted concerns before export.");
+    } catch (error) {
+      const fallback = improveFormFieldsLocally(form);
+      setForm((current) => ({ ...current, ...fallback.fields }));
+      setFieldImproveConcerns(fallback.concerns);
+      setFieldImproveStatus(`${error.message} Local field cleanup was used.`);
+    } finally {
+      setFieldImproveLoading(false);
+    }
   }
 
-  function openPdfPreview() {
-    setPreviewOpen(true);
-    setExportStatus("PDF package preview opened below. Review the completed TTFS form pages and appendices before printing.");
-    window.setTimeout(() => {
-      document.getElementById("pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
+  async function handleAutoFillForm() {
+    setBulkLoading(true);
+
+    try {
+      const response = await fetch("/api/auto-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: bulkNotes })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The AI auto-fill assistant returned an unexpected server response." };
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI auto-fill failed.");
+      }
+
+      const localResult = inferBulkData(bulkNotes);
+      const mergedData = applyStructuredFieldCleanup({ ...result.data, ...localResult.data });
+      setForm((current) => ({ ...current, ...mergedData }));
+      setBulkResult({
+        data: mergedData,
+        concerns: [
+          ...(result.concerns?.length ? result.concerns : ["AI auto-fill completed. Review all populated fields before export."]),
+          ...localResult.concerns.filter((concern) => !result.concerns?.includes(concern))
+        ]
+      });
+    } catch (error) {
+      const result = inferBulkData(bulkNotes);
+      setForm((current) => ({ ...current, ...result.data }));
+      setBulkResult({
+        data: result.data,
+        concerns: [`${error.message} Local auto-fill parser was used.`, ...result.concerns]
+      });
+    } finally {
+      setBulkLoading(false);
+    }
   }
 
-  async function downloadFilledPdf() {
-    setExportStatus("Creating filled official TTFS PDF from the embedded form fields...");
+  async function buildFilledPdfUrl() {
     try {
       if (filledPdfUrl) {
         URL.revokeObjectURL(filledPdfUrl);
@@ -1261,6 +1766,32 @@ export default function Home() {
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       setFilledPdfUrl(url);
+      return url;
+    } catch (error) {
+      setExportStatus(`PDF export failed: ${error.message}`);
+      return "";
+    }
+  }
+
+  async function openPdfPreview() {
+    setExportStatus("Creating actual filled TTFS PDF preview from the embedded form fields...");
+    const url = await buildFilledPdfUrl();
+    if (!url) {
+      return;
+    }
+    setExportStatus("Actual filled TTFS PDF preview generated below. This preview uses the PDF's own fillable fields.");
+    window.setTimeout(() => {
+      document.getElementById("filled-pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  async function downloadFilledPdf() {
+    setExportStatus("Creating filled official TTFS PDF from the embedded form fields...");
+    const url = await buildFilledPdfUrl();
+    if (!url) {
+      return;
+    }
+    try {
       const link = document.createElement("a");
       link.href = url;
       link.download = `${form.reportNumber || "ttfs-fire-report"}-completed.pdf`;
@@ -1274,14 +1805,8 @@ export default function Home() {
   }
 
   function printPdf() {
-    setPreviewOpen(true);
-    setExportStatus(
-      "Opening print dialog. If your browser blocks it, use the visible preview below and press Cmd+P or Ctrl+P, then choose Save as PDF."
-    );
-    window.setTimeout(() => {
-      document.getElementById("pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      window.print();
-    }, 250);
+    openPdfPreview();
+    setExportStatus("Actual filled TTFS PDF preview is being prepared. Use the PDF viewer print button or download the PDF and print it.");
   }
 
   return (
@@ -1326,11 +1851,11 @@ export default function Home() {
                 value={bulkNotes}
                 onChange={(event) => setBulkNotes(event.target.value)}
                 rows={8}
-                placeholder="Paste all collected notes here. Labelled lines work best, for example: Station: Tunapuna Fire Station, Cause: Accidental, Damage: ..."
+                placeholder="Paste all collected notes here. The AI will sort facts into the official TTFS fields and flag anything missing or uncertain."
               />
             </label>
-            <button type="button" onClick={handleAutoFillForm}>
-              Auto-fill Form
+            <button type="button" onClick={handleAutoFillForm} disabled={bulkLoading}>
+              {bulkLoading ? "Sorting Data..." : "AI Auto-fill Form"}
             </button>
             {bulkResult ? (
               <div className="bulk-result">
@@ -1355,6 +1880,61 @@ export default function Home() {
               <FieldInput key={field.name} field={field} value={form[field.name]} onChange={updateField} />
             ))}
           </div>
+
+          <section className="official-subsection" aria-label="Casualty table">
+            <div className="subsection-title">
+              <h3>Casualties</h3>
+              <p>Name, brief description of injuries, and treated by are filled into the official casualty table.</p>
+            </div>
+            <div className="casualty-table">
+              <span>Name</span>
+              <span>Brief description of injuries</span>
+              <span>Treated by</span>
+              {Array.from({ length: 6 }, (_, index) => {
+                const row = index + 1;
+                return (
+                  <Fragment key={row}>
+                    <input
+                      aria-label={`Casualty ${row} name`}
+                      name={`casualtyName${row}`}
+                      value={form[`casualtyName${row}`]}
+                      onChange={updateField}
+                    />
+                    <input
+                      aria-label={`Casualty ${row} brief description of injuries`}
+                      name={`casualtyInjury${row}`}
+                      value={form[`casualtyInjury${row}`]}
+                      onChange={updateField}
+                    />
+                    <input
+                      aria-label={`Casualty ${row} treated by`}
+                      name={`casualtyTreatedBy${row}`}
+                      value={form[`casualtyTreatedBy${row}`]}
+                      onChange={updateField}
+                    />
+                  </Fragment>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="official-subsection" aria-label="Values damage and insurance fields">
+            <div className="subsection-title">
+              <h3>Values, Damage, and Insurance</h3>
+              <p>Enter figures only for the four value/damage fields. Insurance information is separate.</p>
+            </div>
+            <div className="value-grid">
+              {["valueBuilding", "valueStock", "damageBuilding", "damageStock"].map((name) => {
+                const field = formFields.find((item) => item.name === name);
+                return <FieldInput key={name} field={field} value={form[name]} onChange={updateField} />;
+              })}
+              <FieldInput
+                field={formFields.find((item) => item.name === "insuranceDetails")}
+                value={form.insuranceDetails}
+                onChange={updateField}
+              />
+            </div>
+          </section>
         </section>
 
         <section className="panel output-panel no-print" aria-labelledby="output-heading">
@@ -1469,9 +2049,10 @@ export default function Home() {
                     placeholder="Paste rough notes, weak sentences, or incomplete wording here. The assistant will improve wording without changing facts."
                   />
                 </label>
-                <button type="button" onClick={handleImproveWriting}>
-                  Improve Writing
+                <button type="button" onClick={handleImproveWriting} disabled={writingLoading}>
+                  {writingLoading ? "Improving..." : "Improve Writing"}
                 </button>
+                {writingStatus ? <p className="export-status">{writingStatus}</p> : null}
               </article>
               {writingResult ? (
                 <>
@@ -1508,6 +2089,24 @@ export default function Home() {
                 </>
               ) : null}
               <article>
+                <h3>Improve Official Form Fields</h3>
+                <p>
+                  Cleans up wording already entered in the official form fields, preserves facts and service numbers,
+                  and keeps missing information visible for officer review.
+                </p>
+                <button type="button" onClick={handleImproveAllFields} disabled={fieldImproveLoading}>
+                  {fieldImproveLoading ? "Improving Fields..." : "Improve All Form Fields"}
+                </button>
+                {fieldImproveStatus ? <p className="export-status">{fieldImproveStatus}</p> : null}
+                {fieldImproveConcerns.length ? (
+                  <ul>
+                    {fieldImproveConcerns.map((concern) => (
+                      <li key={concern}>{concern}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+              <article>
                 <h3>Improved Report Draft</h3>
                 <pre>{improvedReport}</pre>
               </article>
@@ -1535,28 +2134,31 @@ export default function Home() {
               <article>
                 <h3>Official PDF Export</h3>
                 <p>
-                  The printable export is prepared to use the immutable official TTFS form template at{" "}
-                  <code>{officialTemplatePath}</code>. Generated content is placed over the rendered official form pages,
-                  text shrinks where reasonable, and overflow continues on appendix pages.
+                  The export uses the immutable fillable TTFS form template at <code>{officialTemplatePath}</code>.
+                  Generated content is written into the PDF&apos;s own embedded fields, not visually overlaid on top of
+                  the form. Overflow continues on appendix pages.
                 </p>
                 <div className="export-actions">
                   <button type="button" onClick={downloadFilledPdf}>
                     Download Filled Official PDF
                   </button>
                   <button type="button" onClick={openPdfPreview}>
-                    Preview PDF Package
+                    Preview Actual Filled PDF
                   </button>
                   <button type="button" className="secondary-action" onClick={printPdf}>
-                    Print / Save as PDF
+                    Print / Save Filled PDF
                   </button>
                 </div>
                 {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
                 {filledPdfUrl ? (
-                  <p className="export-status">
-                    <a href={filledPdfUrl} download={`${form.reportNumber || "ttfs-fire-report"}-completed.pdf`}>
-                      Download generated PDF again
-                    </a>
-                  </p>
+                  <div id="filled-pdf-preview" className="filled-pdf-preview">
+                    <p className="export-status">
+                      <a href={filledPdfUrl} download={`${form.reportNumber || "ttfs-fire-report"}-completed.pdf`}>
+                        Download generated PDF again
+                      </a>
+                    </p>
+                    <iframe title="Actual filled TTFS PDF preview" src={filledPdfUrl} />
+                  </div>
                 ) : null}
               </article>
               <article>
@@ -1679,8 +2281,8 @@ export default function Home() {
           <TemplateField className="tf-auxiliary" fieldKey="auxiliaryAttending" value={form.auxiliaryAttending}>
             {form.auxiliaryAttending}
           </TemplateField>
-          <TemplateField className="tf-casualties" fieldKey="casualties" value={form.casualties}>
-            {truncateForForm("casualties", form.casualties)}
+          <TemplateField className="tf-casualties" fieldKey="casualties" value={formatCasualties(form)}>
+            {formatCasualties(form)}
           </TemplateField>
           <TemplateField className="tf-report-date" fieldKey="dateOfReport" value={form.dateOfReport}>
             {form.dateOfReport}
@@ -1693,10 +2295,10 @@ export default function Home() {
           </TemplateField>
           <TemplateField
             className="tf-values-insurance"
-            fieldKey="valuesDamageInsurance"
-            value={form.valuesDamageInsurance}
+            fieldKey="insuranceDetails"
+            value={formatValuesDamageInsurance(form)}
           >
-            {truncateForForm("valuesDamageInsurance", form.valuesDamageInsurance)}
+            {truncateForForm("insuranceDetails", formatValuesDamageInsurance(form))}
           </TemplateField>
           <TemplateField
             className="tf-observations"
