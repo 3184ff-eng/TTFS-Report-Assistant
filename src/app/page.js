@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import fontkit from "@pdf-lib/fontkit";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 const tabs = ["Generate Report", "Vet Report", "Improve Report", "Export PDF"];
 const causeClassifications = ["Natural", "Accidental", "Incendiary", "Undetermined"];
@@ -10,6 +10,9 @@ const watchOptions = ["White Watch", "Black Watch", "Red Watch", "Blue Watch"];
 const howCallReceivedOptions = [
   "999/990 Emergency Call",
   "Telephone via North Control",
+  "Telephone via Fire Control",
+  "Wireless via North Control",
+  "Wireless via Fire Control",
   "Station Telephone",
   "Walk-in Report",
   "Police",
@@ -54,7 +57,18 @@ const stationOptions = [
   "Tunapuna Fire Station",
   "Woodbrook Fire Station"
 ];
-const incidentTypes = ["Structural Fire", "House Fire", "Commercial Fire", "Vehicle Fire", "Light Pole Fire", "Bush Fire", "RTA", "MVF"];
+const incidentTypes = [
+  "Structural Fire",
+  "House Fire",
+  "Commercial Fire",
+  "Vehicle Fire",
+  "Light Pole Fire",
+  "Bush Fire",
+  "RTA",
+  "MVF",
+  "Indiscriminate Burning",
+  "Rubbish Fire"
+];
 const officialTemplatePath = "/templates/ttfs-fire-report-form.pdf";
 
 const incidentPrompts = {
@@ -87,6 +101,16 @@ const incidentPrompts = {
     "Record approximate acreage, vegetation type, weather/wind conditions if observed, exposures, and method of extinguishment.",
     "Note appliances, manpower, water source, and whether fire breaks or beaters were used.",
     "Avoid assigning deliberate cause without supporting facts."
+  ],
+  "Indiscriminate Burning": [
+    "Record the material burned, location, nearby exposures, smoke conditions, and whether the fire was supervised or unattended.",
+    "Place caller, resident, police, or municipal information in Additional Information.",
+    "Do not infer intent unless the officer has confirmed supporting facts."
+  ],
+  "Rubbish Fire": [
+    "Record the type and approximate quantity of rubbish involved, container or open-area location, and exposures threatened.",
+    "Describe the extinguishment method, water used, and whether overhaul or wetting down was completed.",
+    "Keep complaints, caller details, and pre-arrival actions in Additional Information."
   ],
   RTA: [
     "Record vehicle count, road/location, persons trapped or injured, extrication actions, and agencies present.",
@@ -209,7 +233,7 @@ const formFields = [
   { name: "officersAttending", label: "Officers attending", type: "textarea", mandatory: true, wide: true },
   {
     name: "seniorOfficersAttending",
-    label: "FS/SO and FS/O attending",
+    label: "FSSO and FS/O attending",
     type: "textarea",
     mandatory: true,
     wide: true
@@ -315,7 +339,7 @@ const officialPrintFields = [
   ["Description of damage", "descriptionOfDamage"],
   ["Appliances attending", "appliancesAttending"],
   ["Officers attending", "officersAttending"],
-  ["FS/SO and FS/O attending", "seniorOfficersAttending"],
+  ["FSSO and FS/O attending", "seniorOfficersAttending"],
   ["Number of men attending / personnel details", "personnelAttendingDetails"],
   ["Professionals attending count", "professionalsAttending"],
   ["Auxiliary attending count", "auxiliaryAttending"],
@@ -573,7 +597,7 @@ function buildFireReport(form) {
     compactLine("Description of damage", form.descriptionOfDamage),
     compactLine("Appliances attending", form.appliancesAttending),
     compactLine("Officers attending", form.officersAttending),
-    compactLine("FS/SO and FS/O attending", form.seniorOfficersAttending),
+    compactLine("FSSO and FS/O attending", form.seniorOfficersAttending),
     compactLine("Number of men attending / personnel details", form.personnelAttendingDetails),
     compactLine("Professionals attending count", form.professionalsAttending),
     compactLine("Auxiliary attending count", form.auxiliaryAttending),
@@ -907,7 +931,7 @@ const bulkFieldAliases = [
   ["descriptionOfDamage", ["description of damage", "damage", "damage description"]],
   ["appliancesAttending", ["appliances attending", "appliances"]],
   ["officersAttending", ["officers attending", "officers"]],
-  ["seniorOfficersAttending", ["fs/so and fs/o attending", "f.s.s.o", "senior officers", "fsso"]],
+  ["seniorOfficersAttending", ["fss/o and fs/o attending", "fs/so and fs/o attending", "f.s.s.o", "senior officers", "fsso"]],
   [
     "personnelAttendingDetails",
     ["number of men attending", "number of men crew", "number of men / crew", "men attending", "personnel attending", "personnel details", "crew attending"]
@@ -1542,12 +1566,32 @@ function addAppendixPages(pdfDoc, formData, font) {
   });
 }
 
+function drawCorrectedOfficialHeadings(pdfDoc, font) {
+  const page = pdfDoc.getPages()[1];
+  if (!page) {
+    return;
+  }
+
+  page.drawRectangle({
+    x: 419,
+    y: 955,
+    width: 42,
+    height: 15,
+    color: rgb(1, 1, 1),
+    borderColor: rgb(1, 1, 1),
+    borderWidth: 0
+  });
+  page.drawText("FSSO", { x: 426, y: 958, size: 10, font });
+}
+
 async function createFilledOfficialPdf(formData) {
   const existingPdfBytes = await fetch("/templates/ttfs-fire-report-form.pdf").then((response) => response.arrayBuffer());
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
   pdfDoc.registerFontkit(fontkit);
   const pdfForm = pdfDoc.getForm();
   const formFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const formBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  drawCorrectedOfficialHeadings(pdfDoc, formBoldFont);
 
   const addressGiven = splitForFields(formData.addressGiven, [30, 44, 44]);
   const actualAddress = splitForFields(formData.actualAddress, [26, 44, 44]);
@@ -1563,7 +1607,8 @@ async function createFilledOfficialPdf(formData) {
   const casualtyRows = getCasualtyRows(formData);
 
   setPdfText(pdfForm, "No", formData.reportNumber, 9);
-  setPdfText(pdfForm, "Text7", formData.station, 9);
+  setPdfText(pdfForm, "Text7", formData.incidentType, 12, { fit: false });
+  setPdfText(pdfForm, "Fire Station", formData.station, 12, { fit: false });
   setPdfText(pdfForm, "Date Call Received", formData.dateCallReceived, 9);
   setPdfText(pdfForm, "Time Call Received", formData.timeCallReceived, 9);
   setPdfText(pdfForm, "How Call Received", formData.howCallReceived, 8.5);
@@ -1617,6 +1662,7 @@ async function createFilledOfficialPdf(formData) {
   setPdfText(pdfForm, "Text3", truncateForForm("officersObservations", formData.officersObservations), 7.4, { multiline: true });
 
   pdfForm.updateFieldAppearances(formFont);
+  pdfForm.getTextField("Fire Station").updateAppearances(formBoldFont);
   addAppendixPages(pdfDoc, formData, formFont);
 
   return pdfDoc.save();

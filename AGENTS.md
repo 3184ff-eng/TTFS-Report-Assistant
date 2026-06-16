@@ -118,6 +118,8 @@ Incident-type prompts must be available for:
 - Bush Fire
 - RTA
 - MVF
+- Indiscriminate Burning
+- Rubbish Fire
 
 The report score must be category-based and include recommendations, not only a single raw score.
 

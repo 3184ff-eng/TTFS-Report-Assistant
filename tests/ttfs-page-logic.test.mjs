@@ -24,10 +24,12 @@ export {
   calculateQualityScore,
   causeClassifications,
   formFields,
+  howCallReceivedOptions,
   improveFormFieldsLocally,
   improveWritingNotes,
   inferBulkData,
   initialForm,
+  incidentTypes,
   stationOptions,
   watchOptions
 };
@@ -38,6 +40,14 @@ export {
 }
 
 const logic = await loadPageLogic();
+
+test("dropdown options include updated incident and call-received values", () => {
+  assert.ok(logic.incidentTypes.includes("Indiscriminate Burning"));
+  assert.ok(logic.incidentTypes.includes("Rubbish Fire"));
+  assert.ok(logic.howCallReceivedOptions.includes("Wireless via North Control"));
+  assert.ok(logic.howCallReceivedOptions.includes("Wireless via Fire Control"));
+  assert.ok(logic.howCallReceivedOptions.includes("Telephone via Fire Control"));
+});
 
 function completeForm(overrides = {}) {
   return {

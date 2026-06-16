@@ -6,6 +6,7 @@ import { PDFDocument } from "pdf-lib";
 const requiredFields = [
   "No",
   "Text7",
+  "Fire Station",
   "Date Call Received",
   "Time Call Received",
   "How Call Received",

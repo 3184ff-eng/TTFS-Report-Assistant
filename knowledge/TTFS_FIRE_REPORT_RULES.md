@@ -136,6 +136,8 @@ The app must provide intelligent prompts for:
 - Bush Fire
 - RTA
 - MVF
+- Indiscriminate Burning
+- Rubbish Fire
 
 ## Quality Scoring
 
