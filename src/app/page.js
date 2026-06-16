@@ -1976,6 +1976,9 @@ export default function Home() {
         <div>
           <p className="eyebrow">Trinidad and Tobago Fire Service</p>
           <h1>TTFS Report Assistant</h1>
+          <a className="text-link" href="/photo-log">
+            Open customer photo log
+          </a>
         </div>
         <div className="score-pill" aria-label={`Report quality score ${qualityScore} out of 100`}>
           <span>{qualityScore}</span>

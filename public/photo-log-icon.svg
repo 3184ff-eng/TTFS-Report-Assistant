@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Customer Photo Log</title>
+  <rect width="512" height="512" rx="96" fill="#176b5b"/>
+  <path fill="#fff" d="M144 168h64l24-32h48l24 32h64c22 0 40 18 40 40v144c0 22-18 40-40 40H144c-22 0-40-18-40-40V208c0-22 18-40 40-40Z"/>
+  <circle cx="256" cy="284" r="70" fill="#176b5b"/>
+  <circle cx="256" cy="284" r="42" fill="#f4c542"/>
+  <path fill="#b4232a" d="M358 134c38 0 68 30 68 68 0 56-68 124-68 124s-68-68-68-124c0-38 30-68 68-68Z"/>
+  <circle cx="358" cy="202" r="24" fill="#fff"/>
+</svg>
