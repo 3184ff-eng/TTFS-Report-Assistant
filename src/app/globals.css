@@ -432,17 +432,9 @@ li {
   padding: 10px;
 }
 
-.download-ready-link {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  background: var(--brand);
-  color: #fff;
-  font-weight: 800;
-  padding: 0 16px;
-  text-decoration: none;
+.ready-pdf-actions {
+  display: grid;
+  gap: 10px;
 }
 
 .previewing .print-export {

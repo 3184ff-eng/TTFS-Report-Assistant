@@ -1856,18 +1856,43 @@ export default function Home() {
       if (!url) {
         return;
       }
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${form.reportNumber || "ttfs-fire-report"}-completed.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      triggerPdfDownload(url);
       setExportStatus("Completed official TTFS PDF generated. If your browser did not download it automatically, use the download link below.");
     } catch (error) {
       setExportStatus(`PDF export failed: ${error.message}`);
     } finally {
       setExportLoading(false);
     }
+  }
+
+  function triggerPdfDownload(url = filledPdfUrl) {
+    if (!url) {
+      setExportStatus("No PDF is ready yet. Click Download Filled Official PDF first.");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${form.reportNumber || "ttfs-fire-report"}-completed.pdf`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setExportStatus("Download requested. If no file appears, use Open Ready PDF and save it from the PDF viewer.");
+  }
+
+  function openReadyPdf() {
+    if (!filledPdfUrl) {
+      setExportStatus("No PDF is ready yet. Click Preview Actual Filled PDF or Download Filled Official PDF first.");
+      return;
+    }
+
+    const opened = window.open(filledPdfUrl, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      setExportStatus("The browser blocked the new PDF tab. Use the PDF preview below or try the download button again.");
+      return;
+    }
+    setExportStatus("Ready PDF opened in a new tab. Use the PDF viewer download or print controls if needed.");
   }
 
   async function printPdf() {
@@ -2230,15 +2255,14 @@ export default function Home() {
                 {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
                 {filledPdfUrl ? (
                   <div id="filled-pdf-preview" className="filled-pdf-preview">
-                    <p className="export-status">
-                      <a
-                        className="download-ready-link"
-                        href={filledPdfUrl}
-                        download={`${form.reportNumber || "ttfs-fire-report"}-completed.pdf`}
-                      >
+                    <div className="ready-pdf-actions" aria-label="Ready PDF actions">
+                      <button type="button" onClick={() => triggerPdfDownload()}>
                         Download ready PDF
-                      </a>
-                    </p>
+                      </button>
+                      <button type="button" className="secondary-action" onClick={openReadyPdf}>
+                        Open Ready PDF
+                      </button>
+                    </div>
                     <iframe title="Actual filled TTFS PDF preview" src={filledPdfUrl} />
                   </div>
                 ) : null}
