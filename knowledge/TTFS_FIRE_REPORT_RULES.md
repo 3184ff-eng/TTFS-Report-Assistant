@@ -70,12 +70,12 @@ Report content must not be invented, silently omitted, or truncated. Missing req
 
 Station must be selected from a dropdown list of TTFS fire stations, not entered as free text.
 
-Use these exact station options grouped by headquarters:
+Use these exact station options in a flat dropdown. The TTFS Headquarters entries are also selectable station options:
 
-- TTFS Headquarters North: Arima Fire Station, Belmont Fire Station, Chaguaramas Fire Station, Four Roads Fire Station, Morvant Fire Station, San Juan Fire Station, Sangre Grande Fire Station, Santa Cruz Fire Station, Tunapuna Fire Station, Woodbrook Fire Station
-- TTFS Headquarters Central: Chaguanas Fire Station, Couva Fire Station, Couva South Fire Station, Piarco Fire Station
-- TTFS Headquarters South: Mon Repos Fire Station, Point Fortin Fire Station, Princes Town Fire Station, Rio Claro Fire Station, Siparia Fire Station
-- TTFS Headquarters Tobago: Crown Point Fire Station, Roxborough Fire Station, Scarborough Fire Station
+- TTFS Headquarters North, Arima Fire Station, Belmont Fire Station, Chaguaramas Fire Station, Four Roads Fire Station, Morvant Fire Station, San Juan Fire Station, Sangre Grande Fire Station, Santa Cruz Fire Station, Tunapuna Fire Station, Woodbrook Fire Station
+- TTFS Headquarters Central, Chaguanas Fire Station, Couva Fire Station, Couva South Fire Station, Piarco Fire Station
+- TTFS Headquarters South, Mon Repos Fire Station, Point Fortin Fire Station, Princes Town Fire Station, Rio Claro Fire Station, Siparia Fire Station
+- TTFS Headquarters Tobago, Crown Point Fire Station, Roxborough Fire Station, Scarborough Fire Station
 
 ## Dropdown Fields
 

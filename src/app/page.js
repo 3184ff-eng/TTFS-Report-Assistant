@@ -30,42 +30,34 @@ const writingSections = [
   "How Fire Was Extinguished",
   "Cause Determination"
 ];
-const stationGroups = [
-  {
-    label: "TTFS Headquarters North",
-    options: [
-      "Arima Fire Station",
-      "Belmont Fire Station",
-      "Chaguaramas Fire Station",
-      "Four Roads Fire Station",
-      "Morvant Fire Station",
-      "San Juan Fire Station",
-      "Sangre Grande Fire Station",
-      "Santa Cruz Fire Station",
-      "Tunapuna Fire Station",
-      "Woodbrook Fire Station"
-    ]
-  },
-  {
-    label: "TTFS Headquarters Central",
-    options: ["Chaguanas Fire Station", "Couva Fire Station", "Couva South Fire Station", "Piarco Fire Station"]
-  },
-  {
-    label: "TTFS Headquarters South",
-    options: [
-      "Mon Repos Fire Station",
-      "Point Fortin Fire Station",
-      "Princes Town Fire Station",
-      "Rio Claro Fire Station",
-      "Siparia Fire Station"
-    ]
-  },
-  {
-    label: "TTFS Headquarters Tobago",
-    options: ["Crown Point Fire Station", "Roxborough Fire Station", "Scarborough Fire Station"]
-  }
+const stationOptions = [
+  "TTFS Headquarters North",
+  "Arima Fire Station",
+  "Belmont Fire Station",
+  "Chaguaramas Fire Station",
+  "Four Roads Fire Station",
+  "Morvant Fire Station",
+  "San Juan Fire Station",
+  "Sangre Grande Fire Station",
+  "Santa Cruz Fire Station",
+  "Tunapuna Fire Station",
+  "Woodbrook Fire Station",
+  "TTFS Headquarters Central",
+  "Chaguanas Fire Station",
+  "Couva Fire Station",
+  "Couva South Fire Station",
+  "Piarco Fire Station",
+  "TTFS Headquarters South",
+  "Mon Repos Fire Station",
+  "Point Fortin Fire Station",
+  "Princes Town Fire Station",
+  "Rio Claro Fire Station",
+  "Siparia Fire Station",
+  "TTFS Headquarters Tobago",
+  "Crown Point Fire Station",
+  "Roxborough Fire Station",
+  "Scarborough Fire Station"
 ];
-const stationOptions = stationGroups.flatMap((group) => group.options);
 const incidentTypes = [
   "Structural Fire",
   "House Fire",
@@ -194,7 +186,7 @@ const initialForm = {
 
 const formFields = [
   { name: "reportNumber", label: "Report Number", type: "text", mandatory: true },
-  { name: "station", label: "Station", type: "select", mandatory: true, optionGroups: stationGroups },
+  { name: "station", label: "Station", type: "select", mandatory: true, options: stationOptions },
   { name: "watch", label: "Watch", type: "select", mandatory: true, options: watchOptions },
   { name: "incidentType", label: "Incident type", type: "select", mandatory: true, options: incidentTypes },
   { name: "dateCallReceived", label: "Date Call Received", type: "date", mandatory: true },
@@ -1448,21 +1440,11 @@ function FieldInput({ field, value, onChange }) {
         </span>
         <select name={field.name} value={value} onChange={onChange}>
           <option value="">{`Select ${field.label.toLowerCase()}`}</option>
-          {field.optionGroups
-            ? field.optionGroups.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </optgroup>
-              ))
-            : field.options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
         </select>
       </label>
     );

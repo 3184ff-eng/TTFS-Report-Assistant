@@ -31,7 +31,6 @@ export {
   inferBulkData,
   initialForm,
   incidentTypes,
-  stationGroups,
   stationOptions,
   watchOptions
 };
@@ -58,11 +57,11 @@ test("assistant network failures explain that the server route is unreachable", 
   assert.match(message, /Local field cleanup was used/);
 });
 
-test("station dropdown uses headquarters grouped station list", () => {
-  assert.deepEqual(
-    logic.stationGroups.map((group) => group.label),
-    ["TTFS Headquarters North", "TTFS Headquarters Central", "TTFS Headquarters South", "TTFS Headquarters Tobago"]
-  );
+test("station dropdown uses flat station list with headquarters as stations", () => {
+  assert.ok(logic.stationOptions.includes("TTFS Headquarters North"));
+  assert.ok(logic.stationOptions.includes("TTFS Headquarters Central"));
+  assert.ok(logic.stationOptions.includes("TTFS Headquarters South"));
+  assert.ok(logic.stationOptions.includes("TTFS Headquarters Tobago"));
   assert.ok(logic.stationOptions.includes("Chaguaramas Fire Station"));
   assert.ok(logic.stationOptions.includes("Santa Cruz Fire Station"));
   assert.ok(logic.stationOptions.includes("Couva South Fire Station"));
