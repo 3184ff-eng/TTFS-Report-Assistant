@@ -50,6 +50,11 @@ button.secondary-action {
   color: var(--ink);
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 button:focus,
 input:focus,
 select:focus,
@@ -425,6 +430,19 @@ li {
   background: #eef8f4;
   margin: 12px 0 0;
   padding: 10px;
+}
+
+.download-ready-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  padding: 0 16px;
+  text-decoration: none;
 }
 
 .previewing .print-export {

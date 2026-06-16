@@ -1685,6 +1685,7 @@ export default function Home() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState("");
   const [filledPdfUrl, setFilledPdfUrl] = useState("");
+  const [exportLoading, setExportLoading] = useState(false);
   const [roughWritingNotes, setRoughWritingNotes] = useState("");
   const [writingResult, setWritingResult] = useState(null);
   const [writingMode, setWritingMode] = useState(writingModes[1]);
@@ -1831,39 +1832,59 @@ export default function Home() {
   }
 
   async function openPdfPreview() {
+    setExportLoading(true);
     setExportStatus("Creating actual filled TTFS PDF preview from the embedded form fields...");
-    const url = await buildFilledPdfUrl();
-    if (!url) {
-      return;
+    try {
+      const url = await buildFilledPdfUrl();
+      if (!url) {
+        return;
+      }
+      setExportStatus("Actual filled TTFS PDF preview generated below. Use the download link below if your browser blocks automatic downloads.");
+      window.setTimeout(() => {
+        document.getElementById("filled-pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } finally {
+      setExportLoading(false);
     }
-    setExportStatus("Actual filled TTFS PDF preview generated below. This preview uses the PDF's own fillable fields.");
-    window.setTimeout(() => {
-      document.getElementById("filled-pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
   }
 
   async function downloadFilledPdf() {
+    setExportLoading(true);
     setExportStatus("Creating filled official TTFS PDF from the embedded form fields...");
-    const url = await buildFilledPdfUrl();
-    if (!url) {
-      return;
-    }
     try {
+      const url = await buildFilledPdfUrl();
+      if (!url) {
+        return;
+      }
       const link = document.createElement("a");
       link.href = url;
       link.download = `${form.reportNumber || "ttfs-fire-report"}-completed.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      setExportStatus("Completed official TTFS PDF generated. If it did not download automatically, use the link below.");
+      setExportStatus("Completed official TTFS PDF generated. If your browser did not download it automatically, use the download link below.");
     } catch (error) {
       setExportStatus(`PDF export failed: ${error.message}`);
+    } finally {
+      setExportLoading(false);
     }
   }
 
-  function printPdf() {
-    openPdfPreview();
-    setExportStatus("Actual filled TTFS PDF preview is being prepared. Use the PDF viewer print button or download the PDF and print it.");
+  async function printPdf() {
+    setExportLoading(true);
+    setExportStatus("Preparing filled TTFS PDF for printing...");
+    try {
+      const url = await buildFilledPdfUrl();
+      if (!url) {
+        return;
+      }
+      setExportStatus("Filled TTFS PDF is ready below. Use the PDF viewer print button, or download it and print from your PDF app.");
+      window.setTimeout(() => {
+        document.getElementById("filled-pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } finally {
+      setExportLoading(false);
+    }
   }
 
   return (
@@ -2196,22 +2217,26 @@ export default function Home() {
                   the form. Overflow continues on appendix pages.
                 </p>
                 <div className="export-actions">
-                  <button type="button" onClick={downloadFilledPdf}>
-                    Download Filled Official PDF
+                  <button type="button" onClick={downloadFilledPdf} disabled={exportLoading}>
+                    {exportLoading ? "Preparing PDF..." : "Download Filled Official PDF"}
                   </button>
-                  <button type="button" onClick={openPdfPreview}>
-                    Preview Actual Filled PDF
+                  <button type="button" onClick={openPdfPreview} disabled={exportLoading}>
+                    {exportLoading ? "Preparing Preview..." : "Preview Actual Filled PDF"}
                   </button>
-                  <button type="button" className="secondary-action" onClick={printPdf}>
-                    Print / Save Filled PDF
+                  <button type="button" className="secondary-action" onClick={printPdf} disabled={exportLoading}>
+                    {exportLoading ? "Preparing Print View..." : "Print / Save Filled PDF"}
                   </button>
                 </div>
                 {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
                 {filledPdfUrl ? (
                   <div id="filled-pdf-preview" className="filled-pdf-preview">
                     <p className="export-status">
-                      <a href={filledPdfUrl} download={`${form.reportNumber || "ttfs-fire-report"}-completed.pdf`}>
-                        Download generated PDF again
+                      <a
+                        className="download-ready-link"
+                        href={filledPdfUrl}
+                        download={`${form.reportNumber || "ttfs-fire-report"}-completed.pdf`}
+                      >
+                        Download ready PDF
                       </a>
                     </p>
                     <iframe title="Actual filled TTFS PDF preview" src={filledPdfUrl} />
