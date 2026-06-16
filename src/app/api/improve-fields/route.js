@@ -43,8 +43,13 @@ Rules:
 - Correct grammar, spelling, punctuation, and professional TTFS report style.
 - Do not invent facts or add missing details.
 - Preserve names, times, addresses, appliance numbers, service numbers, vehicle registrations, money values, and cause classifications exactly.
+- Review every field and move wording to the best applicable official TTFS field when it is clearly misplaced.
+- Split mixed content when needed: observed facts to Officer's Observations; received/pre-arrival/investigation information to Additional Information.
 - Officer's Observations must contain only what the officer observed from arrival to departure.
 - Witness statements, information received, investigation findings, and actions before Fire Service arrival must go under Additional Information.
+- Property construction, occupancy, dimensions, class of construction, use, and exposures belong in typeOfProperty.
+- Extinguishment method, hose lines, water/foam/dry powder, isolation, overhaul, hotspots, and control of the fire belong in howFireExtinguished.
+- Burn, smoke, heat, water, stock, content, structure, vehicle, pole, and exposure damage belong in descriptionOfDamage.
 - Use only these cause classifications when one is stated: Natural, Accidental, Incendiary, Undetermined.
 - Follow the TTFS Fire Report Guide and Vetting Checklist.
 - Use the retrieved local knowledge excerpts as guidance and examples. Do not treat retrieved examples as facts about this incident.

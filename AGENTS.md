@@ -105,6 +105,13 @@ Watch must be selected from:
 
 Station must be selected from a dropdown list of TTFS fire stations, not entered as free text.
 
+Station dropdown options must be grouped as:
+
+- TTFS Headquarters North: Arima Fire Station, Belmont Fire Station, Chaguaramas Fire Station, Four Roads Fire Station, Morvant Fire Station, San Juan Fire Station, Sangre Grande Fire Station, Santa Cruz Fire Station, Tunapuna Fire Station, Woodbrook Fire Station
+- TTFS Headquarters Central: Chaguanas Fire Station, Couva Fire Station, Couva South Fire Station, Piarco Fire Station
+- TTFS Headquarters South: Mon Repos Fire Station, Point Fortin Fire Station, Princes Town Fire Station, Rio Claro Fire Station, Siparia Fire Station
+- TTFS Headquarters Tobago: Crown Point Fire Station, Roxborough Fire Station, Scarborough Fire Station
+
 Use dropdowns for constrained official-form values where applicable, including How Call Received, Wind, Water Supply Sufficient, Watch, Station, Incident Type, and Cause of Fire.
 
 The official `Number of Men Attending` area is split into `Professionals` and `Auxiliary` count boxes. Capture those counts as separate fields and place their values in the matching boxes on the official form. Also capture a separate `Number of men attending / personnel details` field for service numbers, ranks, and names such as `3184 FF Mills, 3558 FF Small`; place those personnel details in the Officers Attending rows where appropriate.

@@ -31,6 +31,7 @@ export {
   inferBulkData,
   initialForm,
   incidentTypes,
+  stationGroups,
   stationOptions,
   watchOptions
 };
@@ -55,6 +56,18 @@ test("assistant network failures explain that the server route is unreachable", 
 
   assert.match(message, /AI server route could not be reached/);
   assert.match(message, /Local field cleanup was used/);
+});
+
+test("station dropdown uses headquarters grouped station list", () => {
+  assert.deepEqual(
+    logic.stationGroups.map((group) => group.label),
+    ["TTFS Headquarters North", "TTFS Headquarters Central", "TTFS Headquarters South", "TTFS Headquarters Tobago"]
+  );
+  assert.ok(logic.stationOptions.includes("Chaguaramas Fire Station"));
+  assert.ok(logic.stationOptions.includes("Santa Cruz Fire Station"));
+  assert.ok(logic.stationOptions.includes("Couva South Fire Station"));
+  assert.ok(logic.stationOptions.includes("Piarco Fire Station"));
+  assert.ok(!logic.stationOptions.includes("Arouca Fire Station"));
 });
 
 function completeForm(overrides = {}) {
@@ -150,6 +163,18 @@ test("bulk personnel details do not duplicate into officers attending", () => {
 
   assert.equal(result.data.personnelAttendingDetails, "3184 ff Mills, 3558 ff Small, 2467 ff John and 4567 ff Gram");
   assert.equal(result.data.officersAttending, undefined);
+});
+
+test("unlabelled rough notes are sorted into the best report fields", () => {
+  const result = logic.inferBulkData(
+    "Upon arrival smoke was observed issuing from the bedroom window. Fire was extinguished using one 45 mm hose line and overhaul was conducted. Fire damage was confined to a mattress and wardrobe. The occupier stated he smelled smoke before arrival. Involved was a single-storey residential dwelling of concrete and timber construction."
+  );
+
+  assert.match(result.data.officersObservations, /Smoke was observed/i);
+  assert.match(result.data.howFireExtinguished, /45 mm hose line/i);
+  assert.match(result.data.descriptionOfDamage, /mattress and wardrobe/i);
+  assert.match(result.data.additionalInformation, /occupier stated/i);
+  assert.match(result.data.typeOfProperty, /single-storey residential dwelling/i);
 });
 
 test("multiline dumped report data sorts into the correct official fields", () => {

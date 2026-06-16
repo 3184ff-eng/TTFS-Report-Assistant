@@ -8,6 +8,7 @@ test("loads markdown knowledge and example chunks", () => {
 
   assert.ok(sources.has("knowledge/NORTHERN_DIVISION_GUIDE.md"));
   assert.ok(sources.has("knowledge/VETTING_CHECKLIST.md"));
+  assert.ok(sources.has("knowledge/UPLOADED_GUIDE_AND_EXAMPLE_STANDARDS.md"));
   assert.ok(sources.has("examples/GOOD_REPORT_STANDARD.md"));
   assert.ok(chunks.length >= 4);
 });
@@ -35,4 +36,12 @@ test("retrieves value damage insurance and casualty guidance", () => {
   assert.match(formatted, /Value of Building/i);
   assert.match(formatted, /Damage to Stock/i);
   assert.match(formatted, /casualt/i);
+});
+
+test("retrieves uploaded guide and example standards for light pole and commercial reports", () => {
+  const results = retrieveKnowledge("light pole arcing T&TEC commercial stock construction damage insurance", { limit: 7 });
+  const formatted = formatRetrievedKnowledge(results);
+
+  assert.match(formatted, /Light Pole Fire Standards/i);
+  assert.match(formatted, /Commercial or Large-Structure Standards/i);
 });

@@ -30,33 +30,42 @@ const writingSections = [
   "How Fire Was Extinguished",
   "Cause Determination"
 ];
-const stationOptions = [
-  "Arima Fire Station",
-  "Arouca Fire Station",
-  "Belmont Fire Station",
-  "Chaguanas Fire Station",
-  "Couva Fire Station",
-  "Crown Point Fire Station",
-  "Four Roads Fire Station",
-  "Freeport Fire Station",
-  "Mayaro Fire Station",
-  "Mon Repos Fire Station",
-  "Morvant Fire Station",
-  "Penal Fire Station",
-  "Point Fortin Fire Station",
-  "Port of Spain Fire Station",
-  "Princes Town Fire Station",
-  "Rio Claro Fire Station",
-  "Roxborough Fire Station",
-  "San Fernando Fire Station",
-  "San Juan Fire Station",
-  "Sangre Grande Fire Station",
-  "Scarborough Fire Station",
-  "Siparia Fire Station",
-  "Toco Fire Station",
-  "Tunapuna Fire Station",
-  "Woodbrook Fire Station"
+const stationGroups = [
+  {
+    label: "TTFS Headquarters North",
+    options: [
+      "Arima Fire Station",
+      "Belmont Fire Station",
+      "Chaguaramas Fire Station",
+      "Four Roads Fire Station",
+      "Morvant Fire Station",
+      "San Juan Fire Station",
+      "Sangre Grande Fire Station",
+      "Santa Cruz Fire Station",
+      "Tunapuna Fire Station",
+      "Woodbrook Fire Station"
+    ]
+  },
+  {
+    label: "TTFS Headquarters Central",
+    options: ["Chaguanas Fire Station", "Couva Fire Station", "Couva South Fire Station", "Piarco Fire Station"]
+  },
+  {
+    label: "TTFS Headquarters South",
+    options: [
+      "Mon Repos Fire Station",
+      "Point Fortin Fire Station",
+      "Princes Town Fire Station",
+      "Rio Claro Fire Station",
+      "Siparia Fire Station"
+    ]
+  },
+  {
+    label: "TTFS Headquarters Tobago",
+    options: ["Crown Point Fire Station", "Roxborough Fire Station", "Scarborough Fire Station"]
+  }
 ];
+const stationOptions = stationGroups.flatMap((group) => group.options);
 const incidentTypes = [
   "Structural Fire",
   "House Fire",
@@ -185,7 +194,7 @@ const initialForm = {
 
 const formFields = [
   { name: "reportNumber", label: "Report Number", type: "text", mandatory: true },
-  { name: "station", label: "Station", type: "select", mandatory: true, options: stationOptions },
+  { name: "station", label: "Station", type: "select", mandatory: true, optionGroups: stationGroups },
   { name: "watch", label: "Watch", type: "select", mandatory: true, options: watchOptions },
   { name: "incidentType", label: "Incident type", type: "select", mandatory: true, options: incidentTypes },
   { name: "dateCallReceived", label: "Date Call Received", type: "date", mandatory: true },
@@ -990,6 +999,60 @@ function findOptionMatch(text, options) {
   return options.find((option) => normalizedText.includes(option.toLowerCase()));
 }
 
+function appendField(data, field, sentence) {
+  const value = improveSentence(sentence);
+  if (!value) {
+    return;
+  }
+  data[field] = data[field] ? `${data[field]} ${value}` : value;
+}
+
+function classifyUnlabelledSentence(sentence) {
+  const text = sentence.toLowerCase();
+
+  if (/\b(stated|informed|reported|according to|witness|occupier|owner|neighbour|neighbor|police|t&tec|ttsec|was told|information received)\b/.test(text)) {
+    return "additionalInformation";
+  }
+  if (/\b(arrival|upon arrival|observed|visible|smoke|flames?|fire was seen|heat|sparks?|arcing|issuing from|no injuries were observed)\b/.test(text)) {
+    return "officersObservations";
+  }
+  if (/\b(extinguish|extinguished|hose|jet|water tender|water tank|foam|dry powder|overhaul|hotspots?|wetting down|brought under control)\b/.test(text)) {
+    return "howFireExtinguished";
+  }
+  if (/\b(damage|damaged|destroyed|confined to|burnt|burned|scorched|smoke damage|heat damage|water damage|contents|stock|ceiling|roof|wall|mattress|wardrobe)\b/.test(text)) {
+    return "descriptionOfDamage";
+  }
+  if (/\b(single[- ]storey|two[- ]storey|dwelling|building|structure|property|class construction|galvanised|galvanized|concrete|timber|commercial|residential|vehicle|light pole|rubbish|bush)\b/.test(text)) {
+    return "typeOfProperty";
+  }
+  if (/\b(area of origin|ignition source|first material ignited|cause|accidental|incendiary|undetermined|natural|open flame|electrical)\b/.test(text)) {
+    return "additionalInformation";
+  }
+
+  return "additionalInformation";
+}
+
+function sortUnlabelledNarrativeIntoFields(text, data) {
+  const sorted = {};
+  splitRoughNotes(text).forEach((sentence) => {
+    const field = classifyUnlabelledSentence(sentence);
+    appendField(sorted, field, sentence);
+  });
+
+  Object.entries(sorted).forEach(([field, value]) => {
+    if (!value) {
+      return;
+    }
+    if (!data[field]) {
+      data[field] = value;
+    } else if (field === "additionalInformation") {
+      data[field] = `${data[field]} ${value}`.trim();
+    }
+  });
+
+  return sorted;
+}
+
 function extractLabeledData(lines) {
   const data = {};
   const usedLines = new Set();
@@ -1348,11 +1411,14 @@ function inferBulkData(notes) {
     .filter((line) => !stationOptions.some((stationOption) => line.includes(stationOption)))
     .join(" ");
 
-  if (unusedText && !data.additionalInformation) {
-    data.additionalInformation = improveSentence(unusedText);
-    concerns.push("Unlabelled text was placed in Additional Information for officer review.");
-  } else if (unusedText && data.additionalInformation) {
-    concerns.push("Some unlabelled narrative text was already represented in extracted fields; review all populated fields.");
+  if (unusedText) {
+    const sortedNarrative = sortUnlabelledNarrativeIntoFields(unusedText, data);
+    const sortedFields = Object.keys(sortedNarrative);
+    if (sortedFields.length) {
+      concerns.push(`Unlabelled narrative text was sorted into: ${sortedFields.join(", ")}. Review all populated fields.`);
+    } else {
+      concerns.push("Unlabelled text was placed in Additional Information for officer review.");
+    }
   }
 
   if (lowerNotes.includes("witness") || lowerNotes.includes("stated") || lowerNotes.includes("informed")) {
@@ -1382,11 +1448,21 @@ function FieldInput({ field, value, onChange }) {
         </span>
         <select name={field.name} value={value} onChange={onChange}>
           <option value="">{`Select ${field.label.toLowerCase()}`}</option>
-          {field.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
+          {field.optionGroups
+            ? field.optionGroups.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : field.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
         </select>
       </label>
     );

@@ -72,8 +72,15 @@ Task:
 Rules:
 - Do not invent facts.
 - Preserve service numbers, names, times, addresses, appliance numbers, vehicle registrations, values, and stated cause classifications exactly.
+- Correct grammar, spelling, punctuation, capitalization, and sentence structure before returning field text.
+- Read every sentence and assign it to the best applicable official form field.
+- If a sentence contains both observed facts and received information, split the ideas between Officer's Observations and Additional Information.
 - Officer's Observations must contain only what was observed from Fire Service arrival to departure.
 - Witness statements, received information, investigation findings, and actions before Fire Service arrival must go under Additional Information.
+- Property construction, occupancy, dimensions, class of construction, use, and exposures belong in typeOfProperty.
+- Hose lines, water/foam/dry powder, isolation, overhaul, hotspots, and how the fire was brought under control belong in howFireExtinguished.
+- Burn, smoke, heat, water, stock, content, structure, vehicle, pole, and exposure damage belong in descriptionOfDamage.
+- Origin/cause investigation narrative belongs in Additional Information unless a supported cause classification is explicitly stated.
 - Personnel names/service numbers belong in personnelAttendingDetails unless the notes clearly identify the official Officers Attending field separately.
 - Do not duplicate personnelAttendingDetails into officersAttending.
 - Values must be split into valueBuilding, valueStock, damageBuilding, damageStock, and insuranceDetails.
