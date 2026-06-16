@@ -1469,8 +1469,10 @@ function setPdfText(form, name, value, fontSize = pdfFormFontSize, options = {})
     field.enableMultiline();
   }
   const targetFontSize = options.allowSmaller ? fontSize : Math.max(fontSize, pdfFormFontSize);
+  const actualFontSize = options.fit === false ? targetFontSize : fitFontSize(value, targetFontSize, options.thresholds);
+  const fontName = options.bold ? "Times-Bold" : "Times-Roman";
+  field.acroField.setDefaultAppearance(`/${fontName} ${actualFontSize} Tf 0 g`);
   field.setText(String(value || ""));
-  field.setFontSize(options.fit === false ? targetFontSize : fitFontSize(value, targetFontSize, options.thresholds));
 }
 
 function setPdfCheck(pdfForm, name, checked) {
@@ -1617,7 +1619,7 @@ async function createFilledOfficialPdf(formData) {
 
   setPdfText(pdfForm, "No", formData.reportNumber, 9);
   setPdfText(pdfForm, "Text7", formData.incidentType, 12, { fit: false });
-  setPdfText(pdfForm, "Fire Station", formData.station, 12, { fit: false });
+  setPdfText(pdfForm, "Fire Station", formData.station, 12, { fit: false, bold: true });
   setPdfText(pdfForm, "Date Call Received", formData.dateCallReceived, 9);
   setPdfText(pdfForm, "Time Call Received", formData.timeCallReceived, 9);
   setPdfText(pdfForm, "How Call Received", formData.howCallReceived, 8.5);
