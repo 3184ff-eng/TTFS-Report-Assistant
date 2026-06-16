@@ -24,6 +24,7 @@ export {
   calculateQualityScore,
   causeClassifications,
   formFields,
+  formatAssistantError,
   howCallReceivedOptions,
   improveFormFieldsLocally,
   improveWritingNotes,
@@ -47,6 +48,13 @@ test("dropdown options include updated incident and call-received values", () =>
   assert.ok(logic.howCallReceivedOptions.includes("Wireless via North Control"));
   assert.ok(logic.howCallReceivedOptions.includes("Wireless via Fire Control"));
   assert.ok(logic.howCallReceivedOptions.includes("Telephone via Fire Control"));
+});
+
+test("assistant network failures explain that the server route is unreachable", () => {
+  const message = logic.formatAssistantError(new TypeError("Failed to fetch"), "Local field cleanup");
+
+  assert.match(message, /AI server route could not be reached/);
+  assert.match(message, /Local field cleanup was used/);
 });
 
 function completeForm(overrides = {}) {

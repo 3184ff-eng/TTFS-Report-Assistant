@@ -907,6 +907,15 @@ function formatImprovedWritingResult(result) {
     .join("\n\n");
 }
 
+function formatAssistantError(error, fallbackLabel) {
+  const message = String(error?.message || error || "AI assistant request failed.");
+  const isNetworkFailure = /failed to fetch|networkerror|load failed/i.test(message);
+  const reason = isNetworkFailure
+    ? "The AI server route could not be reached. Confirm the app server is running, then try again."
+    : message;
+  return `${reason} ${fallbackLabel} was used.`;
+}
+
 const bulkFieldAliases = [
   ["reportNumber", ["report number", "report no", "fire report number", "no"]],
   ["station", ["station", "fire station"]],
@@ -1724,7 +1733,7 @@ export default function Home() {
       setWritingStatus("AI writing improvement complete.");
     } catch (error) {
       setWritingResult(improveWritingNotes(roughWritingNotes, writingMode));
-      setWritingStatus(`${error.message} Local fallback was used.`);
+      setWritingStatus(formatAssistantError(error, "Local fallback"));
     } finally {
       setWritingLoading(false);
     }
@@ -1757,7 +1766,7 @@ export default function Home() {
       const fallback = improveFormFieldsLocally(form);
       setForm((current) => ({ ...current, ...fallback.fields }));
       setFieldImproveConcerns(fallback.concerns);
-      setFieldImproveStatus(`${error.message} Local field cleanup was used.`);
+      setFieldImproveStatus(formatAssistantError(error, "Local field cleanup"));
     } finally {
       setFieldImproveLoading(false);
     }
@@ -1796,7 +1805,7 @@ export default function Home() {
       setForm((current) => ({ ...current, ...result.data }));
       setBulkResult({
         data: result.data,
-        concerns: [`${error.message} Local auto-fill parser was used.`, ...result.concerns]
+        concerns: [formatAssistantError(error, "Local auto-fill parser"), ...result.concerns]
       });
     } finally {
       setBulkLoading(false);
