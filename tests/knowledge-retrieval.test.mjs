@@ -45,3 +45,28 @@ test("retrieves uploaded guide and example standards for light pole and commerci
   assert.match(formatted, /Light Pole Fire Standards/i);
   assert.match(formatted, /Commercial or Large-Structure Standards/i);
 });
+
+test("retrieves fire investigation source notes for origin cause and electrical analysis", () => {
+  const results = retrieveKnowledge(
+    "origin cause hypothesis testing electrical conductors arc mapping victim arcs ignition source first fuel oxidant",
+    { limit: 8 }
+  );
+  const formatted = formatRetrievedKnowledge(results);
+
+  assert.match(formatted, /NFPA[_ ]921/i);
+  assert.match(formatted, /Kirk/i);
+  assert.match(formatted, /ignition source/i);
+  assert.match(formatted, /victim arcs/i);
+});
+
+test("retrieves expanded fire investigation materials for propane chemicals and report structure", () => {
+  const results = retrieveKnowledge(
+    "propane liquid vapor leak hazardous chemicals flammable compressed gases full investigation report structure appendices",
+    { limit: 10 }
+  );
+  const formatted = formatRetrievedKnowledge(results);
+
+  assert.match(formatted, /Davis Liquid Versus Vapor Propane/i);
+  assert.match(formatted, /Hazardous Chemicals Handbook/i);
+  assert.match(formatted, /Frequente Industrial Park Fire Investigation Report Structure/i);
+});

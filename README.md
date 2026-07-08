@@ -10,7 +10,17 @@ cp .env.example .env.local
 npm run dev -- -H 127.0.0.1 -p 3001
 ```
 
-Set `OPENAI_API_KEY` in `.env.local` to enable the server-side AI Writing Assistant. The key must never be placed in frontend code.
+Set `OPENAI_API_KEY` in `.env.local` to enable the server-side AI Writing Assistant and Fire Investigation AI Agent. The key must never be placed in frontend code.
+
+To connect an existing OpenAI API Assistant, set one of these server-side environment variables:
+
+```text
+OPENAI_FIRE_INVESTIGATION_ASSISTANT_ID=asst_...
+```
+
+`FIRE_INVESTIGATION_ASSISTANT_ID` is also supported as an alias. If no assistant ID is configured, the Investigation Guide still uses the server-side OpenAI model fallback with the same TTFS safety rules.
+
+ChatGPT Custom GPTs from "My GPTs" are not directly callable from this app by GPT name or GPT link. To make the app behave like your existing fire investigation GPT, paste or summarize that GPT's instructions and preferred workflow into `knowledge/FIRE_INVESTIGATION_GPT_INSTRUCTIONS.md`. The server-side AI routes retrieve from `knowledge/` before calling OpenAI.
 
 The customer photo log is available at:
 

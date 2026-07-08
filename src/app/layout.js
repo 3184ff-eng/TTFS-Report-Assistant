@@ -2,10 +2,10 @@ import "./globals.css";
 
 export const metadata = {
   title: {
-    default: "TTFS Report Assistant",
-    template: "%s | TTFS Report Assistant"
+    default: "Fire Investigation Process Guide",
+    template: "%s | Fire Investigation Process Guide"
   },
-  description: "Mobile-friendly assistant for TTFS reports plus customer photo and location logging.",
+  description: "Mobile-friendly guided workflow for fire investigation process management.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/photo-log-icon.svg",
@@ -13,7 +13,7 @@ export const metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Photo Log",
+    title: "Fire Investigation",
     statusBarStyle: "default"
   }
 };
