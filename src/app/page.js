@@ -1,2640 +1,2607 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import fontkit from "@pdf-lib/fontkit";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
-const authStorageKey = "ttfs-fire-investigation-auth-v1";
-const authSessionKey = "ttfs-fire-investigation-session-v1";
+const tabs = ["Generate Report", "Vet Report", "Improve Report", "Export PDF"];
+const causeClassifications = ["Natural", "Accidental", "Incendiary", "Undetermined"];
+const watchOptions = ["White Watch", "Black Watch", "Red Watch", "Blue Watch"];
+const howCallReceivedOptions = [
+  "999/990 Emergency Call",
+  "Telephone via North Control",
+  "Telephone via Fire Control",
+  "Wireless via North Control",
+  "Wireless via Fire Control",
+  "Station Telephone",
+  "Walk-in Report",
+  "Police",
+  "Ambulance",
+  "Disaster Management",
+  "Other"
+];
+const windOptions = ["Strong", "Average", "Light", "None"];
+const waterSupplyOptions = ["Yes", "No"];
+const writingModes = ["Grammar Correction", "Professional Rewrite", "Fire Prevention Standard"];
+const writingSections = [
+  "Officer's Observations",
+  "Additional Information",
+  "Description of Damage",
+  "How Fire Was Extinguished",
+  "Cause Determination"
+];
+const stationOptions = [
+  "TTFS Headquarters North",
+  "Arima Fire Station",
+  "Belmont Fire Station",
+  "Chaguaramas Fire Station",
+  "Four Roads Fire Station",
+  "Morvant Fire Station",
+  "San Juan Fire Station",
+  "Sangre Grande Fire Station",
+  "Santa Cruz Fire Station",
+  "Tunapuna Fire Station",
+  "Woodbrook Fire Station",
+  "TTFS Headquarters Central",
+  "Chaguanas Fire Station",
+  "Couva Fire Station",
+  "Couva South Fire Station",
+  "Piarco Fire Station",
+  "TTFS Headquarters South",
+  "Mon Repos Fire Station",
+  "Point Fortin Fire Station",
+  "Princes Town Fire Station",
+  "Rio Claro Fire Station",
+  "Siparia Fire Station",
+  "TTFS Headquarters Tobago",
+  "Crown Point Fire Station",
+  "Roxborough Fire Station",
+  "Scarborough Fire Station"
+];
+const incidentTypes = [
+  "Structural Fire",
+  "House Fire",
+  "Commercial Fire",
+  "Vehicle Fire",
+  "Light Pole Fire",
+  "Bush Fire",
+  "RTA",
+  "MVF",
+  "Indiscriminate Burning",
+  "Rubbish Fire"
+];
+const officialTemplatePath = "/templates/ttfs-fire-report-form.pdf";
 
-const investigationStatuses = ["Not Started", "In Progress", "Blocked", "Complete"];
+const incidentPrompts = {
+  "Structural Fire": [
+    "Confirm occupancy, construction type, number of storeys, affected room or area, and exposures.",
+    "Record appliances, water supply, hose lines or equipment used, extinguishment time, and overhaul checks.",
+    "Keep occupier, neighbour, utility, police, or other received information in Additional Information."
+  ],
+  "House Fire": [
+    "Confirm occupancy type, number of floors, construction material, and rooms/contents affected.",
+    "Record hydrant distance, water supply used, appliances attending, and how the fire was extinguished.",
+    "Keep neighbour or occupier statements in Additional Information, not Officer's observations."
+  ],
+  "Commercial Fire": [
+    "Record business name, occupancy/use, affected stock/equipment, and whether operations were disrupted.",
+    "Confirm insurance/value details and any fire protection systems observed.",
+    "Separate received information from direct observations."
+  ],
+  "Vehicle Fire": [
+    "Record vehicle registration, make/model if known, owner/driver, location of vehicle, and area of origin if observed.",
+    "Describe damage to engine bay, passenger compartment, tray, tyres, or nearby exposures.",
+    "Do not infer mechanical or electrical cause unless supported by known facts."
+  ],
+  "Light Pole Fire": [
+    "Record pole number or nearest landmark, utility involvement, visible arcing/smoke/flame, and hazards controlled.",
+    "Describe surrounding exposures and whether power authority was requested or on scene.",
+    "Place caller or resident information in Additional Information."
+  ],
+  "Bush Fire": [
+    "Record approximate acreage, vegetation type, weather/wind conditions if observed, exposures, and method of extinguishment.",
+    "Note appliances, manpower, water source, and whether fire breaks or beaters were used.",
+    "Avoid assigning deliberate cause without supporting facts."
+  ],
+  "Indiscriminate Burning": [
+    "Record the material burned, location, nearby exposures, smoke conditions, and whether the fire was supervised or unattended.",
+    "Place caller, resident, police, or municipal information in Additional Information.",
+    "Do not infer intent unless the officer has confirmed supporting facts."
+  ],
+  "Rubbish Fire": [
+    "Record the type and approximate quantity of rubbish involved, container or open-area location, and exposures threatened.",
+    "Describe the extinguishment method, water used, and whether overhaul or wetting down was completed.",
+    "Keep complaints, caller details, and pre-arrival actions in Additional Information."
+  ],
+  RTA: [
+    "Record vehicle count, road/location, persons trapped or injured, extrication actions, and agencies present.",
+    "Document hazards controlled, such as fuel spill, battery isolation, or traffic safety.",
+    "Keep bystander statements in Additional Information."
+  ],
+  MVF: [
+    "Record vehicle details, fire location on the vehicle, extinguishing agent used, and damage extent.",
+    "Confirm casualties, owner/driver details, and insurance/value information if available.",
+    "Use only Natural, Accidental, Incendiary, or Undetermined for cause classification."
+  ]
+};
 
-const investigationStages = [
+const initialForm = {
+  reportNumber: "",
+  station: "",
+  watch: "",
+  incidentType: "",
+  wind: "",
+  dateCallReceived: "",
+  timeCallReceived: "",
+  howCallReceived: "",
+  addressGiven: "",
+  actualAddress: "",
+  timeApplianceLeftStation: "",
+  approxDistanceToFire: "",
+  ownerOccupier: "",
+  hydrantDistance: "",
+  causeOfFire: "",
+  waterSupply: "",
+  lpmAvailable: "",
+  lpmRequired: "",
+  typeOfProperty: "",
+  howFireExtinguished: "",
+  descriptionOfDamage: "",
+  appliancesAttending: "",
+  officersAttending: "",
+  seniorOfficersAttending: "",
+  personnelAttendingDetails: "",
+  professionalsAttending: "",
+  auxiliaryAttending: "",
+  casualtyName1: "",
+  casualtyInjury1: "",
+  casualtyTreatedBy1: "",
+  casualtyName2: "",
+  casualtyInjury2: "",
+  casualtyTreatedBy2: "",
+  casualtyName3: "",
+  casualtyInjury3: "",
+  casualtyTreatedBy3: "",
+  casualtyName4: "",
+  casualtyInjury4: "",
+  casualtyTreatedBy4: "",
+  casualtyName5: "",
+  casualtyInjury5: "",
+  casualtyTreatedBy5: "",
+  casualtyName6: "",
+  casualtyInjury6: "",
+  casualtyTreatedBy6: "",
+  valueBuilding: "",
+  valueStock: "",
+  damageBuilding: "",
+  damageStock: "",
+  insuranceDetails: "",
+  officersObservations: "",
+  additionalInformation: "",
+  dateOfFire: "",
+  dateOfReport: "",
+  reportingOfficer: "",
+  rank: ""
+};
+
+const formFields = [
+  { name: "reportNumber", label: "Report Number", type: "text", mandatory: true },
+  { name: "station", label: "Station", type: "select", mandatory: true, options: stationOptions },
+  { name: "watch", label: "Watch", type: "select", mandatory: true, options: watchOptions },
+  { name: "incidentType", label: "Incident type", type: "select", mandatory: true, options: incidentTypes },
+  { name: "dateCallReceived", label: "Date Call Received", type: "date", mandatory: true },
+  { name: "timeCallReceived", label: "Time Call Received", type: "time", mandatory: true },
+  { name: "howCallReceived", label: "How Call Received", type: "select", mandatory: true, options: howCallReceivedOptions },
+  { name: "addressGiven", label: "Address Given", type: "text", mandatory: true, wide: true },
+  { name: "actualAddress", label: "Actual Address", type: "text", mandatory: true, wide: true },
+  { name: "timeApplianceLeftStation", label: "Time Appliance Left Station", type: "time", mandatory: true },
+  { name: "approxDistanceToFire", label: "Approx. Distance to Fire", type: "text", mandatory: true },
+  { name: "wind", label: "Wind", type: "select", mandatory: true, options: windOptions },
+  { name: "ownerOccupier", label: "Owner/Occupier", type: "textarea", mandatory: true, wide: true },
+  { name: "hydrantDistance", label: "Hydrant distance", type: "text", mandatory: true },
   {
-    id: "preScene",
-    code: "1000",
-    title: "Pre-scene Activities",
-    mission:
-      "Receive the assignment, define the problem, gather initial information, identify hazards, notify required parties, and prepare a safe investigation plan.",
-    checkpoints: [
-      "Record date/time of loss, location, property type, known hazards, injuries/fatalities, jurisdiction, and who is in charge.",
-      "Identify permission/access issues, interested parties, partner agencies, equipment needs, and possible pre-scene interviews.",
-      "Create and document a safety plan, PPE needs, known hazards, and any required safety briefing."
-    ],
-    outputs: ["Investigation need defined", "Initial information captured", "Safety plan", "Parties notified where required"],
-    operations: [
-      {
-        id: "assignmentScope",
-        title: "Assignment and Scope",
-        action: "Confirm why investigative services are required and what authority or agency requested the work.",
-        collect: ["Requesting agency/officer", "Incident location", "Date/time of loss", "Property type", "Known injuries/fatalities"],
-        completeWhen: "The investigation need, jurisdiction, and initial scope are recorded."
-      },
-      {
-        id: "initialIntelligence",
-        title: "Initial Intelligence",
-        action: "Gather early information before arrival without treating unverified information as fact.",
-        collect: ["Dispatch notes", "Initial fireground summary", "Known hazards", "Owner/occupier details", "Possible witnesses"],
-        completeWhen: "Early information is source-linked and unconfirmed items are clearly marked."
-      },
-      {
-        id: "resourcesSafetyPlan",
-        title: "Resources and Safety Plan",
-        action: "Identify PPE, equipment, specialist support, scene hazards, and briefing needs.",
-        collect: ["PPE required", "Tools/camera/sampling equipment", "Hazardous materials", "Utilities status", "Personnel briefing notes"],
-        completeWhen: "A documented safety plan exists before scene work starts."
-      }
-    ]
+    name: "causeOfFire",
+    label: "Cause of fire",
+    type: "select",
+    mandatory: true,
+    options: causeClassifications
   },
   {
-    id: "sceneAccess",
-    code: "1200",
-    title: "Scene Access",
-    mission:
-      "Confirm lawful access before scene work and document whether access is by consent, agency authority, exigent circumstances, warrant, court order, or another approved route.",
-    checkpoints: [
-      "Record who controls the property or scene.",
-      "Document consent, authority, exigent circumstances, warrant status, court order status, or reason access is delayed.",
-      "If access is delayed, record permitted tasks completed while waiting, such as distance photographs, interviews, or checks for neighbouring CCTV."
-    ],
-    outputs: ["Access basis documented", "Access limitations recorded", "Permitted interim tasks tracked"],
-    operations: [
-      {
-        id: "sceneControl",
-        title: "Scene Control",
-        action: "Identify who controls the scene and whether fire, police, owner, occupier, or another authority is responsible.",
-        collect: ["Scene controller", "Property controller", "Restricted areas", "Safety perimeter", "Scene log if available"],
-        completeWhen: "Control and restrictions are documented before entry."
-      },
-      {
-        id: "lawfulAuthority",
-        title: "Lawful Access Basis",
-        action: "Document the access route before examination, including consent, agency authority, exigency, warrant, or court order.",
-        collect: ["Access basis", "Person granting consent", "Warrant/order details", "Limits of authority", "Time access granted"],
-        completeWhen: "The basis and limits of scene access are recorded."
-      },
-      {
-        id: "delayedAccessTasks",
-        title: "If Access Is Delayed",
-        action: "Complete only permitted non-entry tasks while awaiting access.",
-        collect: ["Distance photos", "Exterior observations", "Witness leads", "Neighbouring CCTV checks", "Weather/utility information"],
-        completeWhen: "All interim tasks are documented with sources and no unauthorized entry is implied."
-      }
-    ]
+    name: "waterSupply",
+    label: "Was water supply sufficient?",
+    type: "select",
+    mandatory: true,
+    options: waterSupplyOptions
+  },
+  { name: "lpmAvailable", label: "LPM Available", type: "text", mandatory: true },
+  { name: "lpmRequired", label: "LPM Required", type: "text", mandatory: true },
+  { name: "typeOfProperty", label: "Type of property", type: "textarea", mandatory: true, wide: true },
+  {
+    name: "howFireExtinguished",
+    label: "How fire was extinguished",
+    type: "textarea",
+    mandatory: true,
+    wide: true
   },
   {
-    id: "witnessInfo",
-    code: "1400-1500",
-    title: "Witness Information",
-    mission:
-      "Identify, interview, and document fact witnesses, incident-related witnesses, first responders, and digital witness sources while preserving source details.",
-    checkpoints: [
-      "Record witness identity, role, contact, interview timing, method, and whether follow-up is required.",
-      "Separate first-hand observations from received information, assumptions, or hearsay.",
-      "For digital sources, record system/device type, file/storage type, owner or person in possession, and collection method."
-    ],
-    outputs: ["Witness list", "Timeline contributions", "Digital evidence leads", "Follow-up questions"],
-    operations: [
-      {
-        id: "identifyWitnesses",
-        title: "Identify Witnesses",
-        action: "Separate fact witnesses, incident-related witnesses, first responders, and digital witnesses.",
-        collect: ["Name/contact", "Role", "Location during fire", "First-hand observations", "Received information"],
-        completeWhen: "A witness/source list exists and each source type is labelled."
-      },
-      {
-        id: "conductInterviews",
-        title: "Interview and Timeline",
-        action: "Record statements, interview method, timing, and timeline details without merging them into officer observations.",
-        collect: ["Interview date/time", "Method", "What was seen/heard/smelled", "Actions before arrival", "Follow-up questions"],
-        completeWhen: "Witness facts are source-linked and timeline entries are separated from assumptions."
-      },
-      {
-        id: "digitalWitnesses",
-        title: "Digital Sources",
-        action: "Identify CCTV, alarms, dispatch logs, phones, smart devices, and other digital systems.",
-        collect: ["Device/system type", "Owner/controller", "File/storage type", "Collection method", "Preservation request"],
-        completeWhen: "Digital sources are logged with possession/control and collection status."
-      }
-    ]
+    name: "descriptionOfDamage",
+    label: "Description of damage",
+    type: "textarea",
+    mandatory: true,
+    wide: true
+  },
+  { name: "appliancesAttending", label: "Appliances attending", type: "textarea", mandatory: true, wide: true },
+  { name: "officersAttending", label: "Officers attending", type: "textarea", mandatory: true, wide: true },
+  {
+    name: "seniorOfficersAttending",
+    label: "FSSO and FS/O attending",
+    type: "textarea",
+    mandatory: true,
+    wide: true
   },
   {
-    id: "dataCollection",
-    code: "2000",
-    title: "Data Collection",
-    mission:
-      "Collect, preserve, and evaluate scene and non-scene data, including observations, fire effects, suppression effects, evidence, records, and outside reports.",
-    checkpoints: [
-      "Document general observations: odour, sound, visuals, ventilation, building/room characteristics, dimensions, fuels, contents, and disturbed items.",
-      "Assess fire effects, suppression effects, overhaul effects, forced entry, ventilation changes, utility disconnections, and moved contents.",
-      "Record evidence collection, sampling, testing requests, chain of custody, maps, CCTV, weather, dispatch logs, injuries, outside reports, and research."
-    ],
-    outputs: ["Scene data", "Non-scene data", "Evidence/samples", "Data gaps"],
-    operations: [
-      {
-        id: "documentBeforeDisturbance",
-        title: "Document Before Disturbance",
-        action: "Photograph and note the scene condition before moving, sampling, or destructive examination.",
-        collect: ["Overall photos", "Scene orientation", "Hazards", "Initial condition", "What has already been moved"],
-        completeWhen: "The original observed condition is preserved in notes/photos before alteration."
-      },
-      {
-        id: "systematicSceneExam",
-        title: "Systematic Scene Exam",
-        action: "Move from exterior to interior, then room by room, assigning labels and photos to each area.",
-        collect: ["Exterior sides", "Room labels", "Ventilation openings", "Contents/fuels", "Fire and smoke effects"],
-        completeWhen: "Every examined area has notes, label, and photo references."
-      },
-      {
-        id: "preserveEvidence",
-        title: "Preserve Evidence",
-        action: "Identify, photograph, protect, collect, package, and track evidence only when appropriate.",
-        collect: ["Potential ignition sources", "Samples", "Evidence location", "Collector", "Chain of custody"],
-        completeWhen: "Evidence handling is documented before removal or testing."
-      },
-      {
-        id: "collectNonSceneData",
-        title: "Non-scene Data",
-        action: "Collect records and technical data that may affect origin, cause, timeline, or fire development.",
-        collect: ["CCTV", "Weather", "Utility status", "Dispatch logs", "Plans/maps", "Outside reports"],
-        completeWhen: "Non-scene data is source-linked and contradictions are flagged."
-      }
-    ]
+    name: "personnelAttendingDetails",
+    label: "Number of men attending / personnel details",
+    type: "textarea",
+    mandatory: true,
+    wide: true,
+    help: "Enter service numbers, ranks, and names, e.g. 3184 FF Mills, 3558 FF Small, 2467 FF John and 4567 FF Gram."
   },
   {
-    id: "originDetermination",
-    code: "3000-3200",
-    title: "Origin Determination",
-    mission:
-      "Analyze fire patterns, fire dynamics, witness information, physical evidence, timeline data, and reconstruction information to develop and test origin hypotheses.",
-    checkpoints: [
-      "Evaluate fire effects in context: ventilation, fuels, heat/smoke flow, suppression, duration, and post-fire disturbance.",
-      "Develop all area-of-origin hypotheses supported by the data.",
-      "Test each origin hypothesis against analyzed case data, scientific knowledge, and contradictory evidence."
-    ],
-    outputs: ["Origin hypotheses", "Test results", "Surviving/eliminated hypotheses", "Area of origin or uncertainty"],
-    operations: [
-      {
-        id: "analyzeFireEffects",
-        title: "Analyze Fire Effects",
-        action: "Assign meaning to patterns only after considering fuel, ventilation, duration, suppression, and disturbance.",
-        collect: ["Pattern photos", "Measurements", "Fuel packages", "Ventilation conditions", "Suppression effects"],
-        completeWhen: "Pattern interpretation includes limits and alternative explanations."
-      },
-      {
-        id: "developOriginHypotheses",
-        title: "Develop Origin Hypotheses",
-        action: "List every plausible sector or area of origin supported by collected data.",
-        collect: ["Possible sectors", "Supporting facts", "Contradictory facts", "Witness/digital timeline", "Physical evidence"],
-        completeWhen: "All plausible origin hypotheses are documented before elimination."
-      },
-      {
-        id: "testOriginHypotheses",
-        title: "Test Origin Hypotheses",
-        action: "Test each origin hypothesis against all known data and scientific knowledge.",
-        collect: ["Hypothesis tested", "Support", "Contradictions", "Additional tests needed", "Eliminated/surviving status"],
-        completeWhen: "Eliminated and surviving hypotheses are recorded with reasons."
-      },
-      {
-        id: "stateOriginLimits",
-        title: "State Origin or Limits",
-        action: "State sector, area, point, or undetermined origin only to the precision supported by the evidence.",
-        collect: ["Sector of origin", "Area of origin", "Point of origin if supported", "Uncertainty/radius", "Reviewer concerns"],
-        completeWhen: "The origin conclusion or uncertainty is tied to tested facts."
-      }
-    ]
+    name: "professionalsAttending",
+    label: "Professionals attending count",
+    type: "text",
+    mandatory: true,
+    help: "Enter the number for the Professionals box on the official form."
   },
   {
-    id: "causeDetermination",
-    code: "4000-4300",
-    title: "Cause Determination",
-    mission:
-      "Identify and test ignition source, first fuel, oxidant, and ignition sequence before forming a cause conclusion or classifying the fire as undetermined.",
-    checkpoints: [
-      "Identify potential ignition sources, proximate first fuels, and oxidants in the area of origin.",
-      "Build and update the event timeline using data, analyses, witness information, and fire patterns.",
-      "Test each cause hypothesis for ignition-source competence, proximity, temperature, duration, timeline consistency, and fit with all observations."
-    ],
-    outputs: ["Ignition source", "First fuel/material ignited", "Oxidant", "Ignition sequence", "Cause hypothesis status"],
-    operations: [
-      {
-        id: "identifyCauseElements",
-        title: "Identify Cause Elements",
-        action: "Identify potential ignition sources, first fuels, oxidants, and circumstances in the area of origin.",
-        collect: ["Ignition source candidates", "First fuel candidates", "Oxidant/ventilation", "Human activity", "Equipment/appliance status"],
-        completeWhen: "Cause elements are listed without selecting a conclusion prematurely."
-      },
-      {
-        id: "buildIgnitionSequence",
-        title: "Build Ignition Sequence",
-        action: "Describe how ignition source, fuel, oxidant, and circumstances could have come together.",
-        collect: ["Event timeline", "Competent ignition source", "Proximity", "Heat/energy duration", "Fuel configuration"],
-        completeWhen: "Each sequence is mechanically and temporally plausible or clearly rejected."
-      },
-      {
-        id: "testCauseHypotheses",
-        title: "Test Cause Hypotheses",
-        action: "Compare each cause hypothesis against all supporting and contradictory data.",
-        collect: ["Hypothesis", "Supporting facts", "Contradictions", "Tests/lab needs", "Elimination reason"],
-        completeWhen: "Only hypotheses that survive testing remain active."
-      },
-      {
-        id: "classifyOrUndetermined",
-        title: "Classify or Hold",
-        action: "Use only Natural, Accidental, Incendiary, or Undetermined when classification is supported or confirmed.",
-        collect: ["Supported cause", "Classification", "Unresolved elements", "Officer review", "Additional data required"],
-        completeWhen: "The cause/classification is supported, or the matter remains Undetermined with reasons."
-      }
-    ]
+    name: "auxiliaryAttending",
+    label: "Auxiliary attending count",
+    type: "text",
+    mandatory: true,
+    help: "Enter the number for the Auxiliary box on the official form."
+  },
+  { name: "casualtyName1", label: "Casualty 1 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury1", label: "Casualty 1 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy1", label: "Casualty 1 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName2", label: "Casualty 2 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury2", label: "Casualty 2 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy2", label: "Casualty 2 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName3", label: "Casualty 3 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury3", label: "Casualty 3 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy3", label: "Casualty 3 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName4", label: "Casualty 4 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury4", label: "Casualty 4 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy4", label: "Casualty 4 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName5", label: "Casualty 5 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury5", label: "Casualty 5 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy5", label: "Casualty 5 - Treated by", type: "text", mandatory: false },
+  { name: "casualtyName6", label: "Casualty 6 - Name", type: "text", mandatory: false },
+  { name: "casualtyInjury6", label: "Casualty 6 - Brief description of injuries", type: "text", mandatory: false },
+  { name: "casualtyTreatedBy6", label: "Casualty 6 - Treated by", type: "text", mandatory: false },
+  { name: "valueBuilding", label: "Value of Building $", type: "text", mandatory: true },
+  { name: "valueStock", label: "Value of Stock $", type: "text", mandatory: true },
+  { name: "damageBuilding", label: "Damage to Building $", type: "text", mandatory: true },
+  { name: "damageStock", label: "Damage to Stock $", type: "text", mandatory: true },
+  { name: "insuranceDetails", label: "Building and Stock Insured as follows", type: "textarea", mandatory: true, wide: true },
+  {
+    name: "officersObservations",
+    label: "Officer's observations",
+    type: "textarea",
+    mandatory: true,
+    wide: true,
+    help: "Only what the officer observed from arrival to departure."
   },
   {
-    id: "reportingReview",
-    code: "5000-5100",
-    title: "Reporting and Review",
-    mission:
-      "Prepare a defensible investigation record, resolve review issues, and archive data, analysis, hypotheses, documentation, findings, and issued reports.",
-    checkpoints: [
-      "Confirm the investigation file separates facts, source statements, observations, analysis, conclusions, and unresolved gaps.",
-      "Resolve technical or administrative review issues through additional data, consultation, revision, or documented disagreement.",
-      "Archive notes, photographs, sketches, evidence records, witness statements, analysis, hypotheses, and issued reports."
-    ],
-    outputs: ["Investigation summary", "Review result", "Open issues", "Case record archive"],
-    operations: [
-      {
-        id: "fileCompleteness",
-        title: "File Completeness",
-        action: "Confirm notes, photos, sketches, witness records, evidence logs, testing, and research are complete or flagged.",
-        collect: ["Notes", "Photos", "Sketches", "Witness records", "Evidence records", "Outside reports"],
-        completeWhen: "The file shows what was collected, what was not collected, and why."
-      },
-      {
-        id: "technicalReview",
-        title: "Technical Review",
-        action: "Check whether conclusions follow from facts and tested hypotheses.",
-        collect: ["Origin support", "Cause support", "Contradictions", "Missing tests", "Peer/reviewer comments"],
-        completeWhen: "Review issues are resolved or documented for follow-up."
-      },
-      {
-        id: "writeInvestigationReport",
-        title: "Write Investigation Report",
-        action: "Prepare the narrative investigation report using the Grenada example structure as the guide.",
-        collect: ["Cover information", "Overview", "General information", "Investigation narrative", "Origin/cause conclusions", "Appendices"],
-        completeWhen: "The report separates facts, analysis, conclusions, photographs, evidence, and unresolved limitations."
-      },
-      {
-        id: "archiveAndIssue",
-        title: "Archive and Issue",
-        action: "Archive the case record and issue progress/final documents according to agency requirements.",
-        collect: ["Issued reports", "Appendices", "Photo logs", "Evidence transfers", "Final unresolved items"],
-        completeWhen: "The case record is preserved and final/progress outputs are traceable to the data."
-      }
-    ]
-  }
+    name: "additionalInformation",
+    label: "Additional Information",
+    type: "textarea",
+    mandatory: false,
+    wide: true,
+    help: "Witness statements, information received, and pre-arrival actions go here."
+  },
+  { name: "dateOfFire", label: "Date of Fire", type: "date", mandatory: true },
+  { name: "dateOfReport", label: "Date of Report", type: "date", mandatory: true },
+  { name: "reportingOfficer", label: "Reporting Officer", type: "text", mandatory: true },
+  { name: "rank", label: "Rank", type: "text", mandatory: true }
 ];
 
-const dataCollectionTracks = [
-  {
-    id: "generalObservations",
-    code: "2006/2030",
-    title: "General Observations",
-    purpose: "Record the walk-through observations that define what is present, altered, damaged, missing, or potentially relevant.",
-    prompts: [
-      "Olfactory, audible, and visual observations.",
-      "Ventilation sources: windows, doors, exhaust/intake openings, forced openings, and their condition.",
-      "Building and room characteristics: dimensions, lining materials, surfaces, assemblies, contents, fuels, and things moved out.",
-      "Disturbance: suppression effects, occupant movement, investigator movement, collapse, overhaul, or removed contents.",
-      "Building systems observed: electrical, gas, HVAC, alarms, sprinklers, security, utilities, and telecoms."
-    ],
-    expectedEvidence: ["Scene notes", "Overall photographs", "Sketches/measurements", "Ventilation notes", "Disturbance notes"]
-  },
-  {
-    id: "witnessAndDigital",
-    code: "2008/1400",
-    title: "Witness and Digital Data",
-    purpose: "Collect information from people and digital systems without blending statements into direct observations.",
-    prompts: [
-      "Fact witnesses: discoverer, occupants, owners, employees, neighbours, observers, and callers.",
-      "Incident-related witnesses: firefighters, police, security, 911/control operators, and other responders.",
-      "Digital sources: CCTV, alarm panels, fire protection systems, intrusion systems, smart appliances, phones, computers, GPS, and communication logs.",
-      "Document who owns or controls the device/source and how the information was collected.",
-      "Record timeline facts separately from assumptions or opinion."
-    ],
-    expectedEvidence: ["Witness list", "Interview notes", "Digital source log", "Collection method", "Timeline entries"]
-  },
-  {
-    id: "fireEffects",
-    code: "2010/2050",
-    title: "Fire Effects",
-    purpose: "Assess and document physical fire effects before using them in origin analysis.",
-    prompts: [
-      "Fire patterns, smoke deposition, clean burn, oxidation, staining, deformation, melting, spalling, calcination, char depth, and mass loss.",
-      "Fire effects on building systems including alarms, sprinklers, HVAC, utilities, and electrical components.",
-      "Take measurements where useful, such as char depth, calcination depth, and fire-pattern dimensions.",
-      "Document whether sampling or localized examination is needed.",
-      "Avoid single-pattern conclusions; note possible ventilation, fuel, duration, or suppression explanations."
-    ],
-    expectedEvidence: ["Pattern photographs", "Measurements", "Sample notes", "Fire effects map", "Uncertainty notes"]
-  },
-  {
-    id: "suppressionEffects",
-    code: "2012/2080",
-    title: "Suppression and Overhaul Effects",
-    purpose: "Separate fire-caused damage from changes caused by firefighting, entry, ventilation, salvage, and overhaul.",
-    prompts: [
-      "Forced entry, broken windows, opened doors, roof holes, wall/ceiling penetrations, and utility disconnections.",
-      "Offensive or defensive operations and whether fire was driven or ventilation changed.",
-      "Items moved by crews, salvage operations, overhaul, wetting down, and debris relocation.",
-      "Equipment brought into the scene and any resulting pattern disturbance.",
-      "Fire suppression timeline and appliances/resources involved."
-    ],
-    expectedEvidence: ["Fireground action notes", "Crew statements", "Suppression timeline", "Disturbance photographs", "Utility isolation notes"]
-  },
-  {
-    id: "physicalEvidence",
-    code: "2056/2062",
-    title: "Physical Evidence and Samples",
-    purpose: "Track evidence that may need preservation, sampling, testing, or chain-of-custody control.",
-    prompts: [
-      "Potential ignition sources, appliances, conductors, fuel samples, debris samples, comparison samples, and failed components.",
-      "Location found, condition, photograph reference, collector, packaging, storage, and transfer history.",
-      "Whether evidence should be tested, preserved in place, removed, or compared with exemplar material.",
-      "Avoid spoliation: document before alteration, removal, or destructive examination.",
-      "Record laboratory/testing requests and pending results."
-    ],
-    expectedEvidence: ["Evidence log", "Photo references", "Packaging notes", "Chain of custody", "Testing requests"]
-  },
-  {
-    id: "analysesAndReconstruction",
-    code: "2014/2090-2096",
-    title: "Analyses and Reconstruction",
-    purpose: "Capture laboratory, modeling, reconstruction, and pre-fire condition data that feeds origin/cause testing.",
-    prompts: [
-      "Laboratory data: chemical, materials, metallurgical, electrical, mechanical, or ignitability results.",
-      "Pre-fire conditions from interviews, photos, videos, electronic data, and reconstruction.",
-      "Fire scene reconstruction, contents reconstruction, fire modeling, scale testing, or other hypothesis testing.",
-      "Note assumptions, limits, and whether results support or contradict existing hypotheses.",
-      "Identify additional data needed before relying on the analysis."
-    ],
-    expectedEvidence: ["Lab results", "Modeling notes", "Reconstruction sketches", "Assumptions", "Contradictions"]
-  },
-  {
-    id: "causeSpecificData",
-    code: "2018/2120",
-    title: "Cause-Specific Data",
-    purpose: "Collect data directly related to ignition source, first fuel, oxidant, and ignition sequence.",
-    prompts: [
-      "Human activity around the time and location of the fire.",
-      "Potential ignition sources in the area of origin: electrical, smoking, heating, appliances, mechanical, open flame, lightning, chemicals, spontaneous/self-heating.",
-      "Potential fuels: normal and atypical fuels, first fuel candidates, configuration, geometry, ignitability, and proximity.",
-      "Oxidants and ventilation: air, oxygen-enriched atmosphere, chemical oxidants, concentration, amount, and proximity.",
-      "Timeline analysis of how ignition source, fuel, and oxidant could have come together."
-    ],
-    expectedEvidence: ["Ignition source list", "First fuel list", "Oxidant/ventilation notes", "Human activity timeline", "Cause data gaps"]
-  },
-  {
-    id: "outsideReportsResearch",
-    code: "2020/2022/2130/2140",
-    title: "Outside Reports and Research",
-    purpose: "Collect non-scene data, outside reports, and technical research without treating them as direct scene observations.",
-    prompts: [
-      "Outside reports under review: observations, fire effects, suppression effects, witness statements, non-scene data, analyses, and cause-related data.",
-      "Maps, blueprints, building permits, utility maps/status, weather, dispatch records, communication logs, injury/autopsy information, and public records.",
-      "Research sources: literature, product manuals, manufacturer information, safety data sheets, recalls, standards, and peer-reviewed material.",
-      "Document source, date, reliability, and whether the data supports or contradicts other information.",
-      "Flag any required notifications or parties to put on notice based on cause-specific data."
-    ],
-    expectedEvidence: ["Outside report list", "Research notes", "Source reliability notes", "Contradictions", "Notification needs"]
-  }
-];
-
-const sceneExaminationSteps = [
-  {
-    id: "externalExamination",
-    code: "Scene - External",
-    title: "External Examination",
-    entryLabel: "Exterior sector / side",
-    defaultEntryName: "Side A",
-    repeatPrompt: "Add another exterior side or sector",
-    purpose: "Work around the exterior before entering, documenting sides, openings, utilities, exposures, fire travel, suppression effects, and access points.",
-    prompts: [
-      "Label each side of the structure or scene consistently, such as Side A/B/C/D or north/east/south/west.",
-      "Photograph overall views before close-ups.",
-      "Document windows, doors, vents, roof, exterior wall damage, utilities, exposures, and suppression/entry effects.",
-      "Note smoke/fire travel indicators and any exterior evidence or hazards.",
-      "Do not infer interior origin from exterior damage alone."
-    ],
-    sequence: [
-      "Establish exterior orientation and side labels.",
-      "Take four-side overall photographs before close-ups.",
-      "Document openings, utilities, exposures, access, forced entry, and ventilation changes.",
-      "Record exterior fire/smoke travel indicators and suppression effects.",
-      "Flag hazards or exterior evidence requiring protection before entry."
-    ]
-  },
-  {
-    id: "internalRoomByRoom",
-    code: "Scene - Internal",
-    title: "Internal Room by Room",
-    entryLabel: "Room / interior area",
-    defaultEntryName: "Room 1",
-    repeatPrompt: "Add another room",
-    purpose: "Move through the interior systematically, room by room, labelling each room/area and assigning photographs to that label.",
-    prompts: [
-      "Create a room/area label before taking photos, such as Kitchen, Bedroom 1, Office, Mezzanine Storage, or Sector 1.",
-      "Take doorway/entry overview photos before close-up photos.",
-      "Document contents, fuel load, ventilation, fire effects, smoke staining, suppression disturbance, utilities, and electrical items.",
-      "Record what was moved, collapsed, consumed, missing, or protected.",
-      "Keep each photo tied to the room/area and direction of view."
-    ],
-    sequence: [
-      "Create a room or area label before starting that space.",
-      "Photograph from the doorway or entry point before disturbing contents.",
-      "Record contents, fuel packages, ventilation, fire effects, smoke staining, and utilities.",
-      "Take close-up photographs of relevant damage, systems, evidence, and comparison areas.",
-      "Note moved/collapsed/overhauled items and what follow-up is required before leaving the room."
-    ]
-  },
-  {
-    id: "sectorOfOrigin",
-    code: "Origin - Sector",
-    title: "Sector of Origin",
-    entryLabel: "Origin sector hypothesis",
-    defaultEntryName: "Sector 1",
-    repeatPrompt: "Add another sector hypothesis",
-    purpose: "Narrow the scene to the sector or broad region where the fire most likely originated, while preserving alternative sectors.",
-    prompts: [
-      "Identify the sector naming method used, such as business sector, floor, room group, quadrant, or building wing.",
-      "List fire pattern, damage, witness, timeline, ventilation, and suppression data supporting this sector.",
-      "List contradictory data and sectors not yet eliminated.",
-      "Photograph sector boundaries, transition areas, and comparison areas.",
-      "Do not treat sector of origin as point of origin."
-    ],
-    sequence: [
-      "Define the broad sector naming method.",
-      "Group supporting data by fire effects, timeline, witness/digital data, and physical evidence.",
-      "Record sectors still possible and sectors eliminated with reasons.",
-      "Photograph boundaries, transitions, and comparison sectors.",
-      "Identify what data is needed before narrowing to area of origin."
-    ]
-  },
-  {
-    id: "areaOfOrigin",
-    code: "Origin - Area",
-    title: "Area of Origin",
-    entryLabel: "Area of origin hypothesis",
-    defaultEntryName: "Area 1",
-    repeatPrompt: "Add another area hypothesis",
-    purpose: "Define the area of origin using fire dynamics, pattern analysis, witness/digital data, physical evidence, and hypothesis testing.",
-    prompts: [
-      "Describe the area boundaries and why they are scientifically supported.",
-      "Tie photos to specific patterns, fuels, ventilation features, contents, and electrical/building systems.",
-      "Document supporting and contradictory evidence.",
-      "Record uncertainty, radius of error, or need for further data.",
-      "Preserve alternative area hypotheses until tested."
-    ],
-    sequence: [
-      "Define the proposed area boundaries.",
-      "Tie each boundary to observed fire effects, fuels, ventilation, witness/digital data, or physical evidence.",
-      "List all competing area hypotheses before eliminating any.",
-      "Test the area hypothesis against contradictions and fire dynamics.",
-      "Record uncertainty, radius of error, and remaining work."
-    ]
-  },
-  {
-    id: "pointOfOrigin",
-    code: "Origin - Point",
-    title: "Point of Origin",
-    entryLabel: "Point / specific area",
-    defaultEntryName: "Point 1",
-    repeatPrompt: "Add another point or specific area",
-    purpose: "Document the exact or most specific physical location where ignition source, first fuel, and oxidant interacted, where the facts support that level of precision.",
-    prompts: [
-      "Record whether a true point of origin is supported or whether only an area of origin can be stated.",
-      "Photograph close-ups with orientation and scale.",
-      "Identify ignition source candidates, first fuel candidates, oxidant/ventilation, and ignition sequence.",
-      "Document evidence removed, sampled, or requiring laboratory/electrical examination.",
-      "If unsupported, keep point of origin as undetermined or requiring officer review."
-    ],
-    sequence: [
-      "Decide whether the data supports a point, a smaller area, or no further narrowing.",
-      "Photograph the point/area with orientation, scale, and surrounding context.",
-      "Identify ignition source, first fuel, oxidant, and competent ignition sequence candidates.",
-      "Record evidence collection, sampling, electrical examination, or laboratory needs.",
-      "If the point is unsupported, document why it remains area-level or undetermined."
-    ]
-  }
-];
-
-const reportSections = [
-  {
-    id: "cover",
-    title: "Cover / Title Information",
-    guidance: "Report title, incident location, date of fire, date of investigation, investigation team, agency, and roles."
-  },
-  {
-    id: "definitions",
-    title: "Definitions",
-    guidance:
-      "Define technical terms used in the report, such as area of origin, point of origin, fire patterns, arc mapping, soot, spalling, smouldering, radius of error, and related fire/electrical terms."
-  },
-  {
-    id: "overview",
-    title: "Overview",
-    guidance:
-      "Summarize call receipt, incident background, occupancy/ownership, fire service operations, reason investigation was requested, investigation dates/team, and high-level findings."
-  },
-  {
-    id: "generalInformation",
-    title: "General Information",
-    guidance:
-      "Record date/time of fire, address, first officer or agency at scene, responding units where known, premises description, construction, occupants/businesses, fire protection systems, utilities, pre-arrival actions, and losses where supported."
-  },
-  {
-    id: "investigation",
-    title: "The Investigation",
-    guidance:
-      "Describe arrival, access, safety, mapping, scene documentation, external examination, internal room-by-room examination, non-scene data, interviews, and evidence handling."
-  },
-  {
-    id: "originAnalysis",
-    title: "Origin Analysis",
-    guidance:
-      "Explain sector of origin, area of origin, point of origin where supported, supporting/contradictory data, hypothesis testing, uncertainty, and limits."
-  },
-  {
-    id: "causeAnalysis",
-    title: "Ignition Source and Cause Analysis",
-    guidance:
-      "Identify and test ignition source, first material ignited, oxidant, ignition sequence, human activity or equipment involvement where supported, and cause classification only when supported."
-  },
-  {
-    id: "samplesEvidence",
-    title: "Samples / Evidence Taken",
-    guidance:
-      "List evidence, samples, location found, condition, photo references, collection method, packaging, storage, transfers, tests requested, and chain-of-custody gaps."
-  },
-  {
-    id: "conclusion",
-    title: "Conclusion",
-    guidance:
-      "State supported findings, limitations, unresolved items, and whether origin or cause remains undetermined. Do not state facts or conclusions not supported by the investigation record."
-  },
-  {
-    id: "appendices",
-    title: "Appendices",
-    guidance:
-      "Photographic illustrations, drawings/site plans, risk assessment, evidence collection and packaging records, related reports, witness statements, and other supporting documents."
-  }
-];
-
-function createSceneEntry(step, index = 0) {
-  const exteriorLabels = ["Side A", "Side B", "Side C", "Side D"];
-  const label =
-    step.id === "externalExamination"
-      ? exteriorLabels[index] || `Exterior Sector ${index + 1}`
-      : index === 0
-        ? step.defaultEntryName
-        : `${step.defaultEntryName.replace(/\d+$/, "").trim()} ${index + 1}`;
-
-  return {
-    id: globalThis.crypto?.randomUUID?.() || `${step.id}-${Date.now()}-${index}`,
-    areaLabel: label,
-    observationFocus: "",
-    notes: "",
-    gaps: "",
-    photos: []
-  };
-}
-
-function buildInitialSceneExamination() {
-  return sceneExaminationSteps.reduce(
-    (steps, step) => ({
-      ...steps,
-      [step.id]: {
-        areaLabel: "",
-        observationFocus: "",
-        notes: "",
-        gaps: "",
-        photos: [],
-        activeEntryId: `${step.id}-entry-1`,
-        entries: [
-          {
-            ...createSceneEntry(step, 0),
-            id: `${step.id}-entry-1`
-          }
-        ]
-      }
-    }),
-    {}
-  );
-}
-
-function buildInitialDataTracks() {
-  return dataCollectionTracks.reduce(
-    (tracks, track) => ({
-      ...tracks,
-      [track.id]: {
-        notes: "",
-        collectedFrom: "",
-        gaps: "",
-        photos: []
-      }
-    }),
-    {}
-  );
-}
-
-function buildInitialReportWriteup() {
-  return reportSections.reduce(
-    (sections, section) => ({
-      ...sections,
-      [section.id]: ""
-    }),
-    {}
-  );
-}
-
-function buildInitialOperationSteps(stage) {
-  return (stage.operations || []).reduce(
-    (steps, operation) => ({
-      ...steps,
-      [operation.id]: {
-        status: "Not Started",
-        notes: "",
-        records: "",
-        gaps: "",
-        intakeFiles: []
-      }
-    }),
-    {}
-  );
-}
-
-const initialInvestigation = investigationStages.reduce(
-  (state, stage) => ({
-    ...state,
-    [stage.id]: {
-      status: "Not Started",
-      notes: "",
-      missingInfo: "",
-      evidence: "",
-      hypotheses: "",
-      operationSteps: buildInitialOperationSteps(stage),
-      reportWriteup: stage.id === "reportingReview" ? buildInitialReportWriteup() : {},
-      sceneExamination: stage.id === "dataCollection" ? buildInitialSceneExamination() : {},
-      dataTracks: stage.id === "dataCollection" ? buildInitialDataTracks() : {}
-    }
-  }),
-  {}
+const mandatoryFields = formFields.filter((field) => field.mandatory);
+const quickSelectFields = formFields.filter((field) => ["watch", "incidentType"].includes(field.name));
+const casualtyFieldPattern = /^casualty(?:Name|Injury|TreatedBy)\d$/;
+const valueDamageFieldNames = ["valueBuilding", "valueStock", "damageBuilding", "damageStock", "insuranceDetails"];
+const reportFormFields = formFields.filter(
+  (field) =>
+    !["watch", "incidentType"].includes(field.name) &&
+    !casualtyFieldPattern.test(field.name) &&
+    !valueDamageFieldNames.includes(field.name)
 );
+const officialPrintFields = [
+  ["Report Number", "reportNumber"],
+  ["Station", "station"],
+  ["Watch", "watch"],
+  ["Incident Type", "incidentType"],
+  ["Wind", "wind"],
+  ["Date Call Received", "dateCallReceived"],
+  ["Time Call Received", "timeCallReceived"],
+  ["How Call Received", "howCallReceived"],
+  ["Address Given", "addressGiven"],
+  ["Actual Address", "actualAddress"],
+  ["Time Appliance Left Station", "timeApplianceLeftStation"],
+  ["Approx. Distance to Fire", "approxDistanceToFire"],
+  ["Owner/Occupier", "ownerOccupier"],
+  ["Hydrant distance", "hydrantDistance"],
+  ["Cause of fire", "causeOfFire"],
+  ["Water supply", "waterSupply"],
+  ["LPM Available", "lpmAvailable"],
+  ["LPM Required", "lpmRequired"],
+  ["Type of property", "typeOfProperty"],
+  ["How fire was extinguished", "howFireExtinguished"],
+  ["Description of damage", "descriptionOfDamage"],
+  ["Appliances attending", "appliancesAttending"],
+  ["Officers attending", "officersAttending"],
+  ["FSSO and FS/O attending", "seniorOfficersAttending"],
+  ["Number of men attending / personnel details", "personnelAttendingDetails"],
+  ["Professionals attending count", "professionalsAttending"],
+  ["Auxiliary attending count", "auxiliaryAttending"],
+  ["Value of Building", "valueBuilding"],
+  ["Value of Stock", "valueStock"],
+  ["Damage to Building", "damageBuilding"],
+  ["Damage to Stock", "damageStock"],
+  ["Building and Stock Insured as follows", "insuranceDetails"],
+  ["Officer's observations", "officersObservations"]
+];
 
-function calculateProgress(investigation) {
-  const complete = investigationStages.filter((stage) => investigation[stage.id]?.status === "Complete").length;
-  return Math.round((complete / investigationStages.length) * 100);
+const appendixLimits = {
+  ownerOccupier: 92,
+  typeOfProperty: 260,
+  howFireExtinguished: 260,
+  descriptionOfDamage: 300,
+  appliancesAttending: 220,
+  officersAttending: 220,
+  seniorOfficersAttending: 180,
+  personnelAttendingDetails: 260,
+  insuranceDetails: 240,
+  officersObservations: 520
+};
+
+const pdfFormFontSize = 12;
+const pdfAppendixFontSize = 12;
+const appendixLineCapacity = 32;
+const appendixTextMaxChars = 86;
+
+function valueOrMissing(value) {
+  return value.trim() || "[Missing]";
 }
 
-function buildOpenItems(investigation) {
-  return investigationStages.flatMap((stage) => {
-    const data = investigation[stage.id] || {};
-    const items = [];
+function compactLine(label, value) {
+  return `${label}: ${valueOrMissing(value)}`;
+}
 
-    if (data.status !== "Complete") {
-      items.push(`${stage.code} ${stage.title}: ${data.status || "Not Started"}.`);
-    }
-
-    if (!String(data.notes || "").trim()) {
-      items.push(`${stage.code} ${stage.title}: add notes or reason not applicable.`);
-    }
-
-    if (String(data.missingInfo || "").trim()) {
-      items.push(`${stage.code} ${stage.title}: missing info - ${data.missingInfo.trim()}`);
-    }
-
-    const incompleteOperations = (stage.operations || []).filter(
-      (operation) => data.operationSteps?.[operation.id]?.status !== "Complete"
-    );
-
-    if (incompleteOperations.length) {
-      items.push(
-        `${stage.code} ${stage.title}: operation steps still open - ${incompleteOperations
-          .map((operation) => operation.title)
-          .join(", ")}.`
-      );
-    }
-
-    return items;
+function getCasualtyRows(form) {
+  return Array.from({ length: 6 }, (_, index) => {
+    const row = index + 1;
+    return {
+      name: String(form[`casualtyName${row}`] || "").trim(),
+      injury: String(form[`casualtyInjury${row}`] || "").trim(),
+      treatedBy: String(form[`casualtyTreatedBy${row}`] || "").trim()
+    };
   });
 }
 
-function buildInvestigationSummary(investigation) {
-  return investigationStages
-    .map((stage) => {
-      const data = investigation[stage.id] || {};
-      const baseSummary = [
-        `${stage.code} ${stage.title}`,
-        `Status: ${data.status || "Not Started"}`,
-        `Notes: ${data.notes?.trim() || "[No notes entered]"}`,
-        `Evidence/Data: ${data.evidence?.trim() || "[No evidence/data notes entered]"}`,
-        `Hypotheses/Analysis: ${data.hypotheses?.trim() || "[No hypothesis notes entered]"}`,
-        `Missing Information: ${data.missingInfo?.trim() || "[None entered]"}`
-      ].join("\n");
+function formatCasualties(form) {
+  const rows = getCasualtyRows(form)
+    .map((row, index) => ({ ...row, index: index + 1 }))
+    .filter((row) => row.name || row.injury || row.treatedBy);
 
-      const operationSummary = (stage.operations || [])
-        .map((operation) => {
-          const operationData = data.operationSteps?.[operation.id] || {};
-          return [
-            `${operation.title}`,
-            `Status: ${operationData.status || "Not Started"}`,
-            `Records: ${operationData.records?.trim() || "[Not recorded]"}`,
-            `Notes: ${operationData.notes?.trim() || "[No notes entered]"}`,
-            `Intake Files: ${operationData.intakeFiles?.length || 0}`,
-            `Gaps: ${operationData.gaps?.trim() || "[None entered]"}`
-          ].join("\n");
-        })
-        .join("\n\n");
+  if (!rows.length) {
+    return "No casualties entered.";
+  }
 
-      const stageSummary = operationSummary ? `${baseSummary}\n\nOperational Sequence\n${operationSummary}` : baseSummary;
+  return rows
+    .map((row) => {
+      const parts = [
+        row.name ? `Name: ${row.name}` : "Name: [Missing]",
+        row.injury ? `Injuries: ${row.injury}` : "Injuries: [Missing]",
+        row.treatedBy ? `Treated by: ${row.treatedBy}` : "Treated by: [Missing]"
+      ];
+      return `Casualty ${row.index} - ${parts.join("; ")}`;
+    })
+    .join("\n");
+}
 
-      if (stage.id !== "dataCollection") {
-        if (stage.id !== "reportingReview") {
-          return stageSummary;
+function formatValuesDamageInsurance(form) {
+  return [
+    compactLine("Value of Building $", form.valueBuilding),
+    compactLine("Value of Stock $", form.valueStock),
+    compactLine("Damage to Building $", form.damageBuilding),
+    compactLine("Damage to Stock $", form.damageStock),
+    compactLine("Building and Stock Insured as follows", form.insuranceDetails)
+  ].join("\n");
+}
+
+function missingMandatoryFields(form) {
+  return mandatoryFields
+    .filter((field) => !String(form[field.name]).trim())
+    .map((field) => field.label);
+}
+
+function buildValidationWarnings(form) {
+  const warnings = missingMandatoryFields(form).map((field) => `Missing mandatory field: ${field}.`);
+
+  if (!form.typeOfProperty.trim()) {
+    warnings.push("Missing property description.");
+  }
+
+  if (!form.howFireExtinguished.trim()) {
+    warnings.push("Missing extinguishment details.");
+  }
+
+  if (!form.descriptionOfDamage.trim()) {
+    warnings.push("Missing damage description.");
+  }
+
+  if (!form.officersObservations.trim()) {
+    warnings.push("Missing observations.");
+  }
+
+  if (!causeClassifications.includes(form.causeOfFire)) {
+    warnings.push("Unsupported cause determination. Use only Natural, Accidental, Incendiary, or Undetermined.");
+  }
+
+  const observationText = form.officersObservations.toLowerCase();
+  if (observationText.includes("witness stated") || observationText.includes("was told")) {
+    warnings.push("Officer's observations appear to include witness or received information.");
+  }
+
+  if (observationText.includes("before arrival") || observationText.includes("prior to arrival")) {
+    warnings.push("Officer's observations appear to include actions before Fire Service arrival.");
+  }
+
+  return [...new Set(warnings)];
+}
+
+function calculateCategoryScores(form, warnings) {
+  return {
+    "Administrative Data": Math.round(
+      ([
+        "reportNumber",
+        "station",
+        "watch",
+        "dateCallReceived",
+        "timeCallReceived",
+        "howCallReceived",
+        "addressGiven",
+        "actualAddress"
+      ].filter((field) => String(form[field]).trim()).length /
+        8) *
+        100
+    ),
+    "Property Description": form.typeOfProperty.trim() ? 100 : 0,
+    Extinguishment: form.howFireExtinguished.trim() ? 100 : 0,
+    "Damage Description": form.descriptionOfDamage.trim() ? 100 : 0,
+    "Cause Analysis": causeClassifications.includes(form.causeOfFire) ? 100 : 0,
+    "Officer Observations": Math.max(
+      0,
+      form.officersObservations.trim() ? 100 - Math.min(warnings.length * 10, 40) : 0
+    )
+  };
+}
+
+function calculateQualityScore(categoryScores) {
+  const scores = Object.values(categoryScores);
+  return Math.round(scores.reduce((total, score) => total + score, 0) / scores.length);
+}
+
+function buildRecommendations(form, warnings, categoryScores) {
+  const recommendations = [];
+
+  if (categoryScores["Administrative Data"] < 100) {
+    recommendations.push("Complete all official TTFS form fields before export.");
+  }
+
+  if (!form.typeOfProperty.trim()) {
+    recommendations.push("Add a clear property description, including use, construction, and affected area where known.");
+  }
+
+  if (!form.howFireExtinguished.trim()) {
+    recommendations.push("Add extinguishment details, including method, agent, water source, and appliances used.");
+  }
+
+  if (!form.descriptionOfDamage.trim()) {
+    recommendations.push("Describe fire, smoke, heat, and water damage separately where possible.");
+  }
+
+  if (!form.officersObservations.trim()) {
+    recommendations.push("Add Officer's observations from arrival to departure only.");
+  }
+
+  if (!causeClassifications.includes(form.causeOfFire)) {
+    recommendations.push("Select one supported cause classification: Natural, Accidental, Incendiary, or Undetermined.");
+  }
+
+  if (!form.additionalInformation.trim()) {
+    recommendations.push("Confirm whether there are witness statements, received information, or pre-arrival actions.");
+  }
+
+  if (warnings.length === 0 && recommendations.length === 0) {
+    recommendations.push("Report is ready for officer review and PDF export.");
+  }
+
+  return recommendations;
+}
+
+function fieldTextClass(key, value) {
+  const length = String(value || "").length;
+  const limit = appendixLimits[key] || 120;
+
+  if (length > limit * 0.85) {
+    return "field-text shrink-tight";
+  }
+
+  if (length > limit * 0.6) {
+    return "field-text shrink";
+  }
+
+  return "field-text";
+}
+
+function buildPromptSummary(form) {
+  const prompts = incidentPrompts[form.incidentType] || [];
+
+  if (!prompts.length) {
+    return "Select an incident type to show TTFS drafting prompts.";
+  }
+
+  return prompts.join(" ");
+}
+
+function buildCauseAnalysis(form) {
+  if (!causeClassifications.includes(form.causeOfFire)) {
+    return "Cause analysis cannot be completed until a supported cause classification is selected.";
+  }
+
+  return [
+    `Cause classification: ${form.causeOfFire}.`,
+    "This classification must be supported only by officer-provided facts and must not add assumptions.",
+    form.additionalInformation.trim()
+      ? "Additional information is recorded separately from the officer's direct observations."
+      : "No additional information has been entered; confirm whether witness statements, received information, or pre-arrival actions exist.",
+    form.officersObservations.trim()
+      ? "Officer's observations are available for review against the selected cause."
+      : "Officer's observations are missing and should be completed before final export."
+  ].join(" ");
+}
+
+function buildFireReport(form) {
+  return [
+    "TRINIDAD AND TOBAGO FIRE SERVICE",
+    "FIRE REPORT",
+    "",
+    compactLine("Report Number", form.reportNumber),
+    compactLine("Station", form.station),
+    compactLine("Watch", form.watch),
+    compactLine("Incident Type", form.incidentType),
+    compactLine("Wind", form.wind),
+    compactLine("Date Call Received", form.dateCallReceived),
+    compactLine("Time Call Received", form.timeCallReceived),
+    compactLine("How Call Received", form.howCallReceived),
+    compactLine("Address Given", form.addressGiven),
+    compactLine("Actual Address", form.actualAddress),
+    compactLine("Time Appliance Left Station", form.timeApplianceLeftStation),
+    compactLine("Approx. Distance to Fire", form.approxDistanceToFire),
+    compactLine("Owner/Occupier", form.ownerOccupier),
+    compactLine("Hydrant distance", form.hydrantDistance),
+    compactLine("Cause of fire", form.causeOfFire),
+    compactLine("Water supply sufficient", form.waterSupply),
+    compactLine("LPM available", form.lpmAvailable),
+    compactLine("LPM required", form.lpmRequired),
+    compactLine("Type of property", form.typeOfProperty),
+    compactLine("How fire was extinguished", form.howFireExtinguished),
+    compactLine("Description of damage", form.descriptionOfDamage),
+    compactLine("Appliances attending", form.appliancesAttending),
+    compactLine("Officers attending", form.officersAttending),
+    compactLine("FSSO and FS/O attending", form.seniorOfficersAttending),
+    compactLine("Number of men attending / personnel details", form.personnelAttendingDetails),
+    compactLine("Professionals attending count", form.professionalsAttending),
+    compactLine("Auxiliary attending count", form.auxiliaryAttending),
+    "CASUALTIES",
+    formatCasualties(form),
+    "",
+    "VALUES / DAMAGE / INSURANCE",
+    formatValuesDamageInsurance(form),
+    "",
+    "OFFICER'S OBSERVATIONS",
+    valueOrMissing(form.officersObservations),
+    "",
+    "ADDITIONAL INFORMATION",
+    form.additionalInformation.trim() ||
+      "[Not provided. Place witness statements, information received, and pre-arrival actions here.]"
+  ].join("\n");
+}
+
+function buildImprovedReport(form) {
+  return [
+    buildFireReport(form),
+    "",
+    "REVIEW NOTE",
+    "This improved draft preserves entered facts only. Missing items remain flagged for officer review before export."
+  ].join("\n");
+}
+
+function truncateForForm(key, value) {
+  const limit = appendixLimits[key];
+  if (!limit || value.length <= limit) {
+    return value;
+  }
+
+  const marker = " [See Appendix]";
+  const available = Math.max(20, limit - marker.length);
+  return `${value.slice(0, available).trim()}${marker}`;
+}
+
+function splitIntoChunks(text, size) {
+  const chunks = [];
+  let remaining = text.trim();
+
+  while (remaining.length > size) {
+    let splitAt = remaining.lastIndexOf(" ", size);
+    if (splitAt < size * 0.5) {
+      splitAt = size;
+    }
+    chunks.push(remaining.slice(0, splitAt).trim());
+    remaining = remaining.slice(splitAt).trim();
+  }
+
+  if (remaining) {
+    chunks.push(remaining);
+  }
+
+  return chunks;
+}
+
+function wrapAppendixText(text, maxChars = appendixTextMaxChars) {
+  const lines = [];
+  String(text || "")
+    .split("\n")
+    .forEach((paragraph) => {
+      const words = paragraph.trim().split(/\s+/).filter(Boolean);
+      let line = "";
+      words.forEach((word) => {
+        const nextLine = `${line} ${word}`.trim();
+        if (nextLine.length > maxChars && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = nextLine;
         }
+      });
+      if (line) {
+        lines.push(line);
+      }
+    });
+  return lines;
+}
 
-        const reportSummary = reportSections
-          .map((section) => `${section.title}\n${data.reportWriteup?.[section.id]?.trim() || "[Not drafted]"}`)
-          .join("\n\n");
+function createAppendixPage(sections = [], usedLines = 0) {
+  return {
+    sections,
+    usedLines,
+    section: sections.length === 1 ? sections[0].section : "Multiple Sections Continued",
+    text: sections.map((entry) => `${entry.section}\n${entry.text}`).join("\n\n")
+  };
+}
 
-        return `${stageSummary}\n\nInvestigation Report Write-up\n${reportSummary}`;
+function buildOverflowSections(form) {
+  const overflowSections = [];
+
+  officialPrintFields.forEach(([label, key]) => {
+    const text = String(form[key] || "").trim();
+    const limit = appendixLimits[key];
+    if (!limit || text.length <= limit) {
+      return;
+    }
+
+    overflowSections.push({
+      section: `${label} Continued`,
+      text: text.slice(limit).trim()
+    });
+  });
+
+  const additionalInformation = String(form.additionalInformation || "").trim();
+  if (additionalInformation) {
+    overflowSections.push({
+      section: "Additional Information Continued",
+      text: additionalInformation
+    });
+  }
+
+  return overflowSections;
+}
+
+function buildAppendices(form) {
+  const appendices = [];
+  let current = createAppendixPage();
+
+  buildOverflowSections(form).forEach((entry) => {
+    const wrappedLines = wrapAppendixText(entry.text, appendixTextMaxChars);
+    let lineIndex = 0;
+
+    while (lineIndex < wrappedLines.length) {
+      const headingCost = 2;
+      let availableLines = appendixLineCapacity - current.usedLines - headingCost;
+
+      if (availableLines <= 0) {
+        if (current.sections.length) {
+          appendices.push(createAppendixPage(current.sections, current.usedLines));
+        }
+        current = createAppendixPage();
+        availableLines = appendixLineCapacity - headingCost;
       }
 
-      const trackSummary = dataCollectionTracks
-        .map((track) => {
-          const trackData = data.dataTracks?.[track.id] || {};
-          return [
-            `${track.code} ${track.title}`,
-            `Collected From: ${trackData.collectedFrom?.trim() || "[Not recorded]"}`,
-            `Notes: ${trackData.notes?.trim() || "[No notes entered]"}`,
-            `Photos: ${trackData.photos?.length || 0}`,
-            `Gaps: ${trackData.gaps?.trim() || "[None entered]"}`
-          ].join("\n");
-        })
-        .join("\n\n");
+      const linesForPage = wrappedLines.slice(lineIndex, lineIndex + availableLines);
+      current.sections.push({
+        section: entry.section,
+        text: linesForPage.join("\n")
+      });
+      current.usedLines += headingCost + linesForPage.length;
+      lineIndex += linesForPage.length;
+    }
+  });
 
-      const sceneSummary = sceneExaminationSteps
-        .map((step) => {
-          const stepData = data.sceneExamination?.[step.id] || {};
-          const entries = stepData.entries?.length
-            ? stepData.entries
-            : [
-                {
-                  areaLabel: stepData.areaLabel,
-                  observationFocus: stepData.observationFocus,
-                  notes: stepData.notes,
-                  gaps: stepData.gaps,
-                  photos: stepData.photos || []
-                }
-              ];
-          const entrySummary = entries
-            .map((entry, index) =>
-              [
-                `Entry ${index + 1}: ${entry.areaLabel?.trim() || "[Not labelled]"}`,
-                `Observation Focus: ${entry.observationFocus?.trim() || "[Not recorded]"}`,
-                `Notes: ${entry.notes?.trim() || "[No notes entered]"}`,
-                `Photos: ${entry.photos?.length || 0}`,
-                `Gaps: ${entry.gaps?.trim() || "[None entered]"}`
-              ].join("\n")
-            )
-            .join("\n\n");
-          return [
-            `${step.code} ${step.title}`,
-            entrySummary
-          ].join("\n");
-        })
-        .join("\n\n");
+  if (current.sections.length) {
+    appendices.push(createAppendixPage(current.sections, current.usedLines));
+  }
 
-      return `${stageSummary}\n\nScene Examination Sequence\n${sceneSummary}\n\nData Collection Tracks\n${trackSummary}`;
+  return appendices;
+}
+
+function splitRoughNotes(notes) {
+  return notes
+    .replace(/\r/g, "\n")
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function improveSentence(sentence) {
+  const protectedSentence = sentence
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:])/g, "$1")
+    .replace(/\bi\b/g, "I")
+    .trim();
+  const firstCharacter = protectedSentence.charAt(0).toUpperCase();
+  const rest = protectedSentence.slice(1);
+  const withCapital = `${firstCharacter}${rest}`;
+
+  if (/[.!?]$/.test(withCapital)) {
+    return withCapital;
+  }
+
+  return `${withCapital}.`;
+}
+
+function professionalizeSentence(sentence) {
+  return improveSentence(sentence)
+    .replace(/\bwe arrived\b/gi, "On arrival, the crew observed")
+    .replace(/\bwe saw\b/gi, "The crew observed")
+    .replace(/\bput out\b/gi, "extinguished")
+    .replace(/\bburnt\b/gi, "burned")
+    .replace(/\bguy\b/gi, "male individual")
+    .replace(/\blady\b/gi, "female individual")
+    .replace(/\bhouse\b/gi, "dwelling house");
+}
+
+function classifyWritingSentence(sentence) {
+  const text = sentence.toLowerCase();
+
+  if (
+    text.includes("witness") ||
+    text.includes("stated") ||
+    text.includes("reported") ||
+    text.includes("informed") ||
+    text.includes("before arrival") ||
+    text.includes("prior to arrival") ||
+    text.includes("on arrival was told")
+  ) {
+    return "Additional Information";
+  }
+
+  if (
+    text.includes("damage") ||
+    text.includes("burnt") ||
+    text.includes("charred") ||
+    text.includes("smoke damage") ||
+    text.includes("heat damage") ||
+    text.includes("water damage")
+  ) {
+    return "Description of Damage";
+  }
+
+  if (
+    text.includes("extinguish") ||
+    text.includes("hose") ||
+    text.includes("jet") ||
+    text.includes("water") ||
+    text.includes("foam") ||
+    text.includes("dry powder") ||
+    text.includes("made up")
+  ) {
+    return "How Fire Was Extinguished";
+  }
+
+  if (
+    text.includes("cause") ||
+    text.includes("natural") ||
+    text.includes("accidental") ||
+    text.includes("incendiary") ||
+    text.includes("undetermined")
+  ) {
+    return "Cause Determination";
+  }
+
+  return "Officer's Observations";
+}
+
+function scoreWritingQuality(result) {
+  const completedSections = writingSections.filter((section) => result.sections[section].length > 0).length;
+  const sectionScore = Math.round((completedSections / writingSections.length) * 45);
+  const concernPenalty = Math.min(result.concerns.length * 5, 30);
+  const contentScore = result.originalText.trim() ? 35 : 0;
+  const causeScore =
+    result.sections["Cause Determination"].length === 0 ||
+    causeClassifications.some((classification) =>
+      result.sections["Cause Determination"].join(" ").toLowerCase().includes(classification.toLowerCase())
+    )
+      ? 20
+      : 5;
+
+  return Math.max(0, Math.min(100, sectionScore + contentScore + causeScore - concernPenalty));
+}
+
+function scoreFirePreventionReadiness(result) {
+  const requiredSections = [
+    "Officer's Observations",
+    "Additional Information",
+    "Description of Damage",
+    "How Fire Was Extinguished"
+  ];
+  const sectionScore = requiredSections.filter((section) => result.sections[section].length > 0).length * 18;
+  const causeScore = result.sections["Cause Determination"].length > 0 ? 12 : 0;
+  const penalty = Math.min(result.concerns.length * 6, 35);
+
+  return Math.max(0, Math.min(100, sectionScore + causeScore + 16 - penalty));
+}
+
+function improveWritingNotes(notes, mode) {
+  const sections = writingSections.reduce((current, section) => ({ ...current, [section]: [] }), {});
+  const concerns = [];
+  const sentences = splitRoughNotes(notes);
+  const modeRequiresSections = mode !== "Grammar Correction";
+  const modeUsesProfessionalLanguage = mode !== "Grammar Correction";
+  const modeIsFirePrevention = mode === "Fire Prevention Standard";
+
+  if (!notes.trim()) {
+    const emptyResult = {
+      originalText: notes,
+      improvedText: "",
+      sections,
+      concerns: ["Enter rough report notes before using Improve Writing."],
+      qualityScore: 0,
+      firePreventionReadinessScore: 0
+    };
+    return emptyResult;
+  }
+
+  if (!modeRequiresSections) {
+    sections["Additional Information"] = sentences.map(improveSentence);
+  } else {
+    sentences.forEach((sentence) => {
+      const section = classifyWritingSentence(sentence);
+      const improved = modeUsesProfessionalLanguage ? professionalizeSentence(sentence) : improveSentence(sentence);
+      sections[section].push(improved);
+    });
+  }
+
+  if (modeRequiresSections) {
+    writingSections.forEach((section) => {
+      if (sections[section].length === 0) {
+        concerns.push(`Missing or unclear: ${section}.`);
+      }
+    });
+  }
+
+  if (
+    sections["Cause Determination"].length > 0 &&
+    !causeClassifications.some((classification) =>
+      sections["Cause Determination"].join(" ").toLowerCase().includes(classification.toLowerCase())
+    )
+  ) {
+    concerns.push("Cause Determination must use only Natural, Accidental, Incendiary, or Undetermined when a cause classification is stated.");
+  }
+
+  if (sections["Officer's Observations"].some((sentence) => classifyWritingSentence(sentence) === "Additional Information")) {
+    concerns.push("Review Officer's Observations for witness statements, received information, or pre-arrival actions.");
+  }
+
+  if (modeIsFirePrevention) {
+    if (sections["Description of Damage"].length === 0) {
+      concerns.push("Fire Prevention readiness issue: damage description is missing.");
+    }
+    if (sections["How Fire Was Extinguished"].length === 0) {
+      concerns.push("Fire Prevention readiness issue: extinguishment details are missing.");
+    }
+    if (sections["Cause Determination"].length === 0) {
+      concerns.push("Fire Prevention readiness issue: cause determination is missing or unsupported.");
+    }
+  }
+
+  concerns.push("Review improved wording before placing it into the official form. No missing fact has been guessed.");
+
+  const result = {
+    originalText: notes,
+    improvedText: "",
+    sections,
+    concerns: [...new Set(concerns)],
+    qualityScore: 0,
+    firePreventionReadinessScore: 0
+  };
+  result.improvedText = formatImprovedWritingResult(result);
+  result.qualityScore = scoreWritingQuality(result);
+  result.firePreventionReadinessScore = scoreFirePreventionReadiness(result);
+
+  return result;
+}
+
+function improveFormFieldsLocally(form) {
+  const textFields = [
+    "typeOfProperty",
+    "howFireExtinguished",
+    "descriptionOfDamage",
+    "insuranceDetails",
+    "officersObservations",
+    "additionalInformation"
+  ];
+  const fields = {};
+
+  textFields.forEach((field) => {
+    fields[field] = splitRoughNotes(form[field] || "").map(professionalizeSentence).join(" ");
+  });
+
+  ["appliancesAttending", "officersAttending", "seniorOfficersAttending", "personnelAttendingDetails"].forEach((field) => {
+    fields[field] = String(form[field] || "").replace(/\s+/g, " ").replace(/\s+,/g, ",").trim();
+  });
+
+  return {
+    fields,
+    concerns: ["Local cleanup was used. Review all improved fields before export."]
+  };
+}
+
+function formatImprovedWritingResult(result) {
+  return writingSections
+    .map((section) => {
+      const content = result.sections[section].length ? result.sections[section].join(" ") : "[Missing information]";
+      return `${section}\n${content}`;
     })
     .join("\n\n");
 }
 
-function buildReportDraft(investigation) {
-  const sectionText = {
-    cover: [
-      "FIRE INVESTIGATION REPORT",
-      "",
-      "Incident location: [Enter incident location]",
-      "Date of fire: [Enter date of fire]",
-      "Date(s) of investigation: [Enter investigation date(s)]",
-      "Investigator(s): [Enter investigation team and roles]",
-      "",
-      "This draft must be reviewed by the investigator. Missing or unsupported information is intentionally left bracketed."
-    ].join("\n"),
-    definitions:
-      "Define only the technical terms used in this report. Consider definitions for area of origin, point of origin, fire patterns, arc mapping, soot, spalling, smouldering, first material ignited, ignition source, oxidant, and radius of error where relevant.",
-    overview: [
-      investigation.preScene?.notes || "[Pre-scene assignment and initial information not entered]",
-      investigation.sceneAccess?.notes ? `Scene access: ${investigation.sceneAccess.notes}` : "Scene access: [Not entered]",
-      investigation.witnessInfo?.notes ? `Witness/source overview: ${investigation.witnessInfo.notes}` : "Witness/source overview: [Not entered]"
-    ].join("\n\n"),
-    generalInformation: [
-      investigation.preScene?.evidence || "[Administrative, location, property, and initial incident details not entered]",
-      investigation.dataCollection?.dataTracks?.generalObservations?.notes
-        ? `General observations: ${investigation.dataCollection.dataTracks.generalObservations.notes}`
-        : "General observations: [Not entered]",
-      investigation.dataCollection?.dataTracks?.suppressionEffects?.notes
-        ? `Suppression and overhaul effects: ${investigation.dataCollection.dataTracks.suppressionEffects.notes}`
-        : "Suppression and overhaul effects: [Not entered]"
-    ].join("\n\n"),
-    investigation: [
-      investigation.dataCollection?.notes || "[Data collection narrative not entered]",
-      "Scene examination:",
-      ...sceneExaminationSteps.map((step) => {
-        const stepData = investigation.dataCollection?.sceneExamination?.[step.id] || {};
-        const entries = stepData.entries?.length ? stepData.entries : [stepData];
-        const entryText = entries
-          .map(
-            (entry) =>
-              `${entry.areaLabel?.trim() || "[Unlabelled]"}: ${entry.notes?.trim() || "[Not entered]"} Photos: ${
-                entry.photos?.length || 0
-              }. Gaps: ${entry.gaps?.trim() || "[None entered]"}`
-          )
-          .join("\n");
-        return `${step.title}:\n${entryText}`;
-      }),
-      investigation.dataCollection?.dataTracks?.physicalEvidence?.notes
-        ? `Evidence/samples: ${investigation.dataCollection.dataTracks.physicalEvidence.notes}`
-        : "Evidence/samples: [Not entered]"
-    ].join("\n\n"),
-    originAnalysis: [
-      investigation.originDetermination?.notes || "[Origin analysis notes not entered]",
-      investigation.originDetermination?.hypotheses
-        ? `Origin hypotheses/testing: ${investigation.originDetermination.hypotheses}`
-        : "Origin hypotheses/testing: [Not entered]",
-      investigation.originDetermination?.missingInfo
-        ? `Origin limitations/missing data: ${investigation.originDetermination.missingInfo}`
-        : "Origin limitations/missing data: [None entered]"
-    ].join("\n\n"),
-    causeAnalysis: [
-      investigation.causeDetermination?.notes || "[Cause analysis notes not entered]",
-      investigation.causeDetermination?.hypotheses
-        ? `Cause hypotheses/testing: ${investigation.causeDetermination.hypotheses}`
-        : "Cause hypotheses/testing: [Not entered]",
-      investigation.dataCollection?.dataTracks?.causeSpecificData?.notes
-        ? `Cause-specific data: ${investigation.dataCollection.dataTracks.causeSpecificData.notes}`
-        : "Cause-specific data: [Not entered]",
-      "Cause classification must be one of Natural, Accidental, Incendiary, or Undetermined, and only when supported or confirmed."
-    ].join("\n\n"),
-    samplesEvidence: [
-      investigation.dataCollection?.dataTracks?.physicalEvidence?.notes || "[Evidence and samples not entered]",
-      investigation.dataCollection?.dataTracks?.physicalEvidence?.gaps
-        ? `Evidence gaps: ${investigation.dataCollection.dataTracks.physicalEvidence.gaps}`
-        : "Evidence gaps: [None entered]"
-    ].join("\n\n"),
-    conclusion: [
-      investigation.originDetermination?.hypotheses || "[Supported origin conclusion or uncertainty not entered]",
-      investigation.causeDetermination?.hypotheses || "[Supported cause conclusion or uncertainty not entered]",
-      investigation.reportingReview?.missingInfo
-        ? `Limitations/open items: ${investigation.reportingReview.missingInfo}`
-        : "Limitations/open items: [None entered]"
-    ].join("\n\n"),
-    appendices:
-      "List photographic illustrations, drawings/site plans, pre-investigation risk assessment, evidence collection and packaging records, related reports, witness statements, and other supporting documents. Add only appendices that exist in the case record."
-  };
-
-  return reportSections.reduce(
-    (draft, section) => ({
-      ...draft,
-      [section.id]: sectionText[section.id] || ""
-    }),
-    {}
-  );
+function formatAssistantError(error, fallbackLabel) {
+  const message = String(error?.message || error || "AI assistant request failed.");
+  const isNetworkFailure = /failed to fetch|networkerror|load failed/i.test(message);
+  const reason = isNetworkFailure
+    ? "The AI server route could not be reached. Confirm the app server is running, then try again."
+    : message;
+  return `${reason} ${fallbackLabel} was used.`;
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("Photo could not be read."));
-    reader.readAsDataURL(file);
+const bulkFieldAliases = [
+  ["reportNumber", ["report number", "report no", "fire report number", "no"]],
+  ["station", ["station", "fire station"]],
+  ["watch", ["watch"]],
+  ["incidentType", ["incident type", "type of incident", "incident", "type of call"]],
+  ["wind", ["wind"]],
+  ["dateCallReceived", ["date call received", "date received", "call date"]],
+  ["timeCallReceived", ["time call received", "time received", "call time"]],
+  ["howCallReceived", ["how call received", "call received by", "received by", "how call was received"]],
+  ["addressGiven", ["address given", "given address"]],
+  ["actualAddress", ["actual address", "actual address of fire", "address of fire", "fire address"]],
+  ["timeApplianceLeftStation", ["time appliance left station", "appliance left", "left station"]],
+  ["approxDistanceToFire", ["approx distance to fire", "approximate distance to fire", "distance to fire"]],
+  ["ownerOccupier", ["owner", "owner occupier", "owner / occupier", "owner/occupier", "occupier", "owner's name"]],
+  ["hydrantDistance", ["hydrant distance", "distance of nearest hydrant", "nearest hydrant"]],
+  ["causeOfFire", ["cause", "cause of fire", "cause determination"]],
+  ["waterSupply", ["water supply", "water supply sufficient", "was water supply sufficient"]],
+  ["lpmAvailable", ["lpm available", "l.p.m. available"]],
+  ["lpmRequired", ["lpm required", "l.p.m. required"]],
+  ["typeOfProperty", ["type of property", "property description", "property"]],
+  ["howFireExtinguished", ["how fire was extinguished", "extinguished", "extinguishment"]],
+  ["descriptionOfDamage", ["description of damage", "damage", "damage description"]],
+  ["appliancesAttending", ["appliances attending", "appliances"]],
+  ["officersAttending", ["officers attending", "officers"]],
+  ["seniorOfficersAttending", ["fss/o and fs/o attending", "fs/so and fs/o attending", "f.s.s.o", "senior officers", "fsso"]],
+  [
+    "personnelAttendingDetails",
+    ["number of men attending", "number of men crew", "number of men / crew", "men attending", "personnel attending", "personnel details", "crew attending"]
+  ],
+  ["professionalsAttending", ["professionals", "professionals attending", "professionals attending count"]],
+  ["auxiliaryAttending", ["auxiliary", "auxillary", "auxiliary attending", "auxiliary attending count"]],
+  ["casualtyName1", ["casualty 1 name", "name row 1", "casualty name"]],
+  ["casualtyInjury1", ["casualty 1 injury", "brief description of injuries row 1", "injury row 1"]],
+  ["casualtyTreatedBy1", ["casualty 1 treated by", "treated by row 1"]],
+  ["valueBuilding", ["value of building", "estimated value of building", "building value"]],
+  ["valueStock", ["value of stock", "estimated value of contents", "estimated value of stock", "stock value", "contents value"]],
+  ["damageBuilding", ["damage to building", "estimated fire damage", "building damage"]],
+  ["damageStock", ["damage to stock", "stock damage", "contents damage"]],
+  ["insuranceDetails", ["building and stock insured as follows", "values damage and insurance", "values damage insurance", "insurance", "insurance details"]],
+  ["officersObservations", ["officer observations", "officer's observations", "observations"]],
+  ["additionalInformation", ["additional information", "additional info", "witness", "information received"]],
+  ["dateOfFire", ["date of fire", "fire date"]],
+  ["dateOfReport", ["date of report", "report date"]],
+  ["reportingOfficer", ["reporting officer", "officer in charge", "signature"]],
+  ["rank", ["rank"]]
+];
+
+function normalizeLabel(value) {
+  return value.toLowerCase().replace(/[^a-z0-9/ ]/g, "").replace(/\s+/g, " ").trim();
+}
+
+function findFieldByLabel(label) {
+  const normalizedLabel = normalizeLabel(label);
+  const exactMatch = bulkFieldAliases.find(([, aliases]) =>
+    aliases.some((alias) => normalizedLabel === normalizeLabel(alias))
+  );
+
+  if (exactMatch) {
+    return exactMatch[0];
+  }
+
+  return bulkFieldAliases.find(([, aliases]) =>
+    aliases.some((alias) => {
+      const normalizedAlias = normalizeLabel(alias);
+      return normalizedAlias.length >= 9 && normalizedLabel.includes(normalizedAlias);
+    })
+  )?.[0];
+}
+
+function findOptionMatch(text, options) {
+  const normalizedText = text.toLowerCase();
+  return options.find((option) => normalizedText.includes(option.toLowerCase()));
+}
+
+function appendField(data, field, sentence) {
+  const value = improveSentence(sentence);
+  if (!value) {
+    return;
+  }
+  data[field] = data[field] ? `${data[field]} ${value}` : value;
+}
+
+function classifyUnlabelledSentence(sentence) {
+  const text = sentence.toLowerCase();
+
+  if (/\b(stated|informed|reported|according to|witness|occupier|owner|neighbour|neighbor|police|t&tec|ttsec|was told|information received)\b/.test(text)) {
+    return "additionalInformation";
+  }
+  if (/\b(arrival|upon arrival|observed|visible|smoke|flames?|fire was seen|heat|sparks?|arcing|issuing from|no injuries were observed)\b/.test(text)) {
+    return "officersObservations";
+  }
+  if (/\b(extinguish|extinguished|hose|jet|water tender|water tank|foam|dry powder|overhaul|hotspots?|wetting down|brought under control)\b/.test(text)) {
+    return "howFireExtinguished";
+  }
+  if (/\b(damage|damaged|destroyed|confined to|burnt|burned|scorched|smoke damage|heat damage|water damage|contents|stock|ceiling|roof|wall|mattress|wardrobe)\b/.test(text)) {
+    return "descriptionOfDamage";
+  }
+  if (/\b(single[- ]storey|two[- ]storey|dwelling|building|structure|property|class construction|galvanised|galvanized|concrete|timber|commercial|residential|vehicle|light pole|rubbish|bush)\b/.test(text)) {
+    return "typeOfProperty";
+  }
+  if (/\b(area of origin|ignition source|first material ignited|cause|accidental|incendiary|undetermined|natural|open flame|electrical)\b/.test(text)) {
+    return "additionalInformation";
+  }
+
+  return "additionalInformation";
+}
+
+function sortUnlabelledNarrativeIntoFields(text, data) {
+  const sorted = {};
+  splitRoughNotes(text).forEach((sentence) => {
+    const field = classifyUnlabelledSentence(sentence);
+    appendField(sorted, field, sentence);
   });
+
+  Object.entries(sorted).forEach(([field, value]) => {
+    if (!value) {
+      return;
+    }
+    if (!data[field]) {
+      data[field] = value;
+    } else if (field === "additionalInformation") {
+      data[field] = `${data[field]} ${value}`.trim();
+    }
+  });
+
+  return sorted;
 }
 
-function PhotoAnalysisList({ photos }) {
-  if (!photos?.length) {
-    return null;
-  }
+function extractLabeledData(lines) {
+  const data = {};
+  const usedLines = new Set();
+  let activeField = "";
 
-  return (
-    <div className="photo-analysis-list">
-      {photos.map((photo) => (
-        <div className="photo-analysis-item" key={photo.id}>
-          <div>
-            <strong>{photo.label ? `${photo.label} - ${photo.fileName}` : photo.fileName}</strong>
-            <span>{new Date(photo.capturedAt).toLocaleString()}</span>
-          </div>
-          <p>{photo.analysis?.summary || "No summary returned."}</p>
-          {photo.analysis?.visibleFeatures?.length ? (
-            <ul>
-              {photo.analysis.visibleFeatures.slice(0, 5).map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          ) : null}
-          {photo.analysis?.customerClues?.length ? (
-            <>
-              <h4>Investigation Clues</h4>
-              <ul>
-                {photo.analysis.customerClues.slice(0, 5).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {photo.analysis?.concerns?.length ? (
-            <>
-              <h4>Concerns</h4>
-              <ul>
-                {photo.analysis.concerns.slice(0, 5).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  );
+  lines.forEach((line, index) => {
+    const match = line.match(/^([^:=-]{2,70})\s*[:=-]\s*(.*)$/);
+    if (!match) {
+      if (activeField && line) {
+        data[activeField] = `${data[activeField]} ${line}`.trim();
+        usedLines.add(index);
+      }
+      return;
+    }
+
+    const field = findFieldByLabel(match[1]);
+    if (!field) {
+      activeField = "";
+      return;
+    }
+
+    const value = match[2].trim();
+    data[field] = value || data[field] || "";
+    activeField = field;
+    usedLines.add(index);
+  });
+
+  Object.keys(data).forEach((field) => {
+    data[field] = data[field].trim();
+    if (!data[field]) {
+      delete data[field];
+    }
+  });
+
+  return { data, usedLines };
 }
 
-function SceneExaminationPanel({
-  activeStepId,
-  sceneExamination,
-  setActiveStepId,
-  onStepChange,
-  onAddSceneEntry,
-  onSetActiveSceneEntry,
-  onPhotoAnalyze,
-  photoLoadingTarget
-}) {
-  const activeStep = sceneExaminationSteps.find((step) => step.id === activeStepId) || sceneExaminationSteps[0];
-  const activeData = sceneExamination?.[activeStep.id] || {
-    areaLabel: "",
-    observationFocus: "",
-    notes: "",
-    gaps: "",
-    photos: [],
-    activeEntryId: "",
-    entries: []
+function normalizeDateForInput(day, monthName, year) {
+  const months = {
+    january: "01",
+    february: "02",
+    march: "03",
+    april: "04",
+    may: "05",
+    june: "06",
+    july: "07",
+    august: "08",
+    september: "09",
+    october: "10",
+    november: "11",
+    december: "12"
   };
-  const entries = activeData.entries?.length ? activeData.entries : [activeData];
-  const activeEntry = entries.find((entry) => entry.id === activeData.activeEntryId) || entries[0];
+  const month = months[monthName.toLowerCase()];
+  if (!month) {
+    return "";
+  }
 
-  return (
-    <section className="data-collection-panel" aria-label="Scene examination sequence">
-      <div className="subsection-title">
-        <h3>Scene Examination Sequence</h3>
-        <p>Follow the scene from outside to inside, then narrow from sector to area and point of origin.</p>
-      </div>
+  return `${year}-${month}-${String(day).padStart(2, "0")}`;
+}
 
-      <div className="process-tabs scene-step-tabs" role="tablist" aria-label="Scene examination steps">
-        {sceneExaminationSteps.map((step) => (
-          <button
-            key={step.id}
-            type="button"
-            className={activeStep.id === step.id ? "active" : ""}
-            onClick={() => setActiveStepId(step.id)}
-          >
-            <span>{step.code}</span>
-            {step.title}
-          </button>
-        ))}
-      </div>
+function normalizeDateValue(value) {
+  const text = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text;
+  }
 
-      <div className="data-track-detail">
-        <div>
-          <p className="eyebrow">{activeStep.code}</p>
-          <h3>{activeStep.title}</h3>
-          <p>{activeStep.purpose}</p>
-        </div>
-        <div>
-          <h4>Guided Observations</h4>
-          <ul>
-            {activeStep.prompts.map((prompt) => (
-              <li key={prompt}>{prompt}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4>Operational Sequence</h4>
-          <ol className="sequence-list">
-            {activeStep.sequence.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ol>
-        </div>
-        <div className="scene-entry-manager">
-          <div className="subsection-title">
-            <h3>{activeStep.entryLabel} Entries</h3>
-            <p>Label one area, add its notes/photos, then repeat for the next side, sector, room, area, or point.</p>
-          </div>
-          <div className="scene-entry-tabs" role="tablist" aria-label={`${activeStep.title} repeated entries`}>
-            {entries.map((entry, index) => (
-              <button
-                key={entry.id}
-                type="button"
-                className={entry.id === activeEntry.id ? "active" : ""}
-                onClick={() => onSetActiveSceneEntry(activeStep.id, entry.id)}
-              >
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                {entry.areaLabel?.trim() || `${activeStep.entryLabel} ${index + 1}`}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="secondary-action" onClick={() => onAddSceneEntry(activeStep.id)}>
-            {activeStep.repeatPrompt}
-          </button>
-        </div>
-        <div className="form-grid">
-          <label>
-            <span>
-              {activeStep.entryLabel} label <em>Photo assignment</em>
-            </span>
-            <input
-              value={activeEntry.areaLabel}
-              onChange={(event) => onStepChange(activeStep.id, activeEntry.id, "areaLabel", event.target.value)}
-              placeholder="e.g. Side A, Kitchen, Bedroom 1, Sector 1, Mezzanine Storage"
-            />
-          </label>
-          <label>
-            <span>
-              Observation focus <em>What this step records</em>
-            </span>
-            <input
-              value={activeEntry.observationFocus}
-              onChange={(event) => onStepChange(activeStep.id, activeEntry.id, "observationFocus", event.target.value)}
-              placeholder="e.g. ventilation, char depth, electrical conductors, fire spread"
-            />
-          </label>
-          <label className="wide">
-            <span>
-              Step notes <em>Room-by-room facts</em>
-            </span>
-            <textarea
-              value={activeEntry.notes}
-              onChange={(event) => onStepChange(activeStep.id, activeEntry.id, "notes", event.target.value)}
-              rows={4}
-              placeholder="Record observations for this labelled room/area or origin step. Separate facts from interpretation."
-            />
-          </label>
-          <label className="wide">
-            <span>
-              Missing / follow-up <em>Do not guess</em>
-            </span>
-            <textarea
-              value={activeEntry.gaps}
-              onChange={(event) => onStepChange(activeStep.id, activeEntry.id, "gaps", event.target.value)}
-              rows={2}
-              placeholder="Record photos, measurements, interviews, samples, or tests still required for this step."
-            />
-          </label>
-        </div>
+  const words = text.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s*,?\s+(\d{4})$/i);
+  if (words) {
+    return normalizeDateForInput(words[1], words[2], words[3]);
+  }
 
-        <div className="photo-capture-panel">
-          <div>
-            <h4>Photos for {activeEntry.areaLabel?.trim() || activeStep.title}</h4>
-            <p>
-              Take overview and close-up photos for this step. Each photo will be attached to this room/area or
-              origin step label.
-            </p>
-          </div>
-          <label className="photo-input-label">
-            <span>
-              Add step photo <em>Camera or upload</em>
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(event) => onPhotoAnalyze(activeStep.id, activeEntry.id, event)}
-              disabled={photoLoadingTarget === `scene:${activeStep.id}:${activeEntry.id}`}
-            />
-          </label>
-          {photoLoadingTarget === `scene:${activeStep.id}:${activeEntry.id}` ? (
-            <p className="export-status">Analyzing photo for this scene examination step...</p>
-          ) : null}
-          <PhotoAnalysisList photos={activeEntry.photos} />
-        </div>
-      </div>
-    </section>
+  return text;
+}
+
+function normalizeTimeValue(value) {
+  const text = String(value || "").trim();
+  const compact = text.match(/^(\d{1,2})(\d{2})\s*(?:hrs?|hours)?$/i);
+  if (compact) {
+    return `${compact[1].padStart(2, "0")}:${compact[2]}`;
+  }
+
+  const colon = text.match(/^(\d{1,2}):(\d{2})/);
+  if (colon) {
+    return `${colon[1].padStart(2, "0")}:${colon[2]}`;
+  }
+
+  return text;
+}
+
+function extractBetween(text, startPattern, endPattern) {
+  const match = text.match(new RegExp(`${startPattern}([\\s\\S]*?)${endPattern}`, "i"));
+  return match?.[1]?.replace(/\s+/g, " ").trim() || "";
+}
+
+function cleanMoneyValue(value) {
+  const text = String(value || "").trim();
+  const amount = text.match(/(?:TT\$|\$)?\s*([0-9][0-9,]*(?:\.\d{2})?)/i);
+  return amount ? amount[1] : text.replace(/\bTT\$/i, "").replace(/^\$/, "").trim();
+}
+
+function extractMoneyLine(text, pattern) {
+  const match = String(text || "").match(pattern);
+  return match ? cleanMoneyValue(match[1]) : "";
+}
+
+function applyStructuredFieldCleanup(data) {
+  const cleaned = { ...data };
+  const insuranceText = cleaned.insuranceDetails || "";
+
+  if (insuranceText) {
+    cleaned.valueBuilding ||= extractMoneyLine(insuranceText, /estimated\s+value\s+of\s+building\s*:\s*(?:TT\$|\$)?\s*([0-9,]+(?:\.\d{2})?)/i);
+    cleaned.valueStock ||= extractMoneyLine(insuranceText, /estimated\s+value\s+of\s+(?:contents|stock)\s*:\s*(?:TT\$|\$)?\s*([0-9,]+(?:\.\d{2})?)/i);
+    cleaned.damageBuilding ||= extractMoneyLine(insuranceText, /estimated\s+fire\s+damage\s*:\s*(?:TT\$|\$)?\s*([0-9,]+(?:\.\d{2})?)/i);
+    cleaned.insuranceDetails = insuranceText
+      .split(/(?=Estimated value of building:|Estimated value of contents:|Estimated value of stock:|Estimated fire damage:)/i)
+      .filter((line) => !/^Estimated\s+(?:value|fire damage)/i.test(line.trim()))
+      .join(" ")
+      .trim() || insuranceText;
+  }
+
+  ["valueBuilding", "valueStock", "damageBuilding", "damageStock"].forEach((field) => {
+    if (cleaned[field]) {
+      const rawValue = String(cleaned[field]);
+      const amount = rawValue.match(/(?:TT\$|\$)?\s*[0-9][0-9,]*(?:\.\d{2})?/i);
+      const trailingText = amount ? rawValue.slice(amount.index + amount[0].length).trim() : "";
+      if (trailingText && /[A-Za-z]/.test(trailingText)) {
+        cleaned.insuranceDetails = `${cleaned.insuranceDetails || ""} ${trailingText}`.trim();
+      }
+      cleaned[field] = cleanMoneyValue(cleaned[field]);
+    }
+  });
+
+  if (/^(yes|sufficient)$/i.test(cleaned.waterSupply || "")) {
+    cleaned.waterSupply = "Yes";
+  } else if (/^(no|insufficient)$/i.test(cleaned.waterSupply || "")) {
+    cleaned.waterSupply = "No";
+  }
+
+  if (cleaned.personnelAttendingDetails && /^\d+$/.test(cleaned.personnelAttendingDetails)) {
+    cleaned.professionalsAttending ||= cleaned.personnelAttendingDetails;
+    delete cleaned.personnelAttendingDetails;
+  }
+
+  ["dateCallReceived", "dateOfFire", "dateOfReport"].forEach((field) => {
+    if (cleaned[field]) {
+      cleaned[field] = normalizeDateValue(cleaned[field]);
+    }
+  });
+
+  ["timeCallReceived", "timeApplianceLeftStation"].forEach((field) => {
+    if (cleaned[field]) {
+      cleaned[field] = normalizeTimeValue(cleaned[field]);
+    }
+  });
+
+  return cleaned;
+}
+
+function extractNarrativeData(notes) {
+  const data = {};
+  const concerns = [];
+
+  const dateWords = notes.match(/\b(?:on\s+the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s*,?\s+(\d{4})/i);
+  if (dateWords) {
+    const date = normalizeDateForInput(dateWords[1], dateWords[2], dateWords[3]);
+    data.dateCallReceived = date;
+    data.dateOfFire = date;
+  }
+
+  const investigationDate = notes.match(/investigation\s+was\s+conducted\s+on\s+the\s+(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s*,?\s+(\d{4})/i);
+  if (investigationDate) {
+    data.dateOfReport = normalizeDateForInput(investigationDate[1], investigationDate[2], investigationDate[3]);
+  }
+
+  const stationMatch = notes.match(/left\s+the\s+([A-Za-z -]+Fire Station)/i);
+  if (stationMatch) {
+    const station = stationOptions.find((option) => option.toLowerCase() === stationMatch[1].toLowerCase());
+    data.station = station || stationMatch[1];
+  }
+
+  const addressMatch =
+    notes.match(
+      /fire call at\s+([\s\S]*?)(?:\.\s+(?:Involved was|Number of men attending|Men attending|Personnel attending)|\n\s*(?:Involved was|Number of men attending|Men attending|Personnel attending)|Involved was|$)/i
+    ) ||
+    notes.match(/(?:address given|actual address|address of fire)\s*[:=-]\s*([^\n]+)/i);
+  if (addressMatch) {
+    data.addressGiven = addressMatch[1].replace(/\s+/g, " ").replace(/\.$/, "").trim();
+    data.actualAddress = data.addressGiven;
+  }
+
+  const appliances = [...notes.matchAll(/#\s*(\d+)\s+(Water Tender|Ambulance|Pump|Emergency Tender|Ladder|Appliance)/gi)].map(
+    (match) => `#${match[1]} ${match[2]}`
   );
-}
+  if (appliances.length) {
+    data.appliancesAttending = appliances.join(", ");
+  }
 
-function DataCollectionTrackPanel({
-  activeTrackId,
-  dataTracks,
-  onTrackChange,
-  setActiveTrackId,
-  onPhotoAnalyze,
-  photoLoadingTrack
-}) {
-  const activeTrack = dataCollectionTracks.find((track) => track.id === activeTrackId) || dataCollectionTracks[0];
-  const activeData = dataTracks?.[activeTrack.id] || { notes: "", collectedFrom: "", gaps: "", photos: [] };
-
-  return (
-    <section className="data-collection-panel" aria-label="Data collection process map categories">
-      <div className="subsection-title">
-        <h3>2000 Data Collection Source Tabs</h3>
-        <p>Use these tabs to collect each category of scene and non-scene data before origin and cause analysis.</p>
-      </div>
-
-      <div className="process-tabs data-track-tabs" role="tablist" aria-label="Data collection source categories">
-        {dataCollectionTracks.map((track) => (
-          <button
-            key={track.id}
-            type="button"
-            className={activeTrack.id === track.id ? "active" : ""}
-            onClick={() => setActiveTrackId(track.id)}
-          >
-            <span>{track.code}</span>
-            {track.title}
-          </button>
-        ))}
-      </div>
-
-      <div className="data-track-detail">
-        <div>
-          <p className="eyebrow">{activeTrack.code}</p>
-          <h3>{activeTrack.title}</h3>
-          <p>{activeTrack.purpose}</p>
-        </div>
-        <div className="stage-columns">
-          <div>
-            <h4>Collect / Check</h4>
-            <ul>
-              {activeTrack.prompts.map((prompt) => (
-                <li key={prompt}>{prompt}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>Evidence to Capture</h4>
-            <ul>
-              {activeTrack.expectedEvidence.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="form-grid">
-          <label>
-            <span>
-              Collected from <em>Source</em>
-            </span>
-            <textarea
-              value={activeData.collectedFrom}
-              onChange={(event) => onTrackChange(activeTrack.id, "collectedFrom", event.target.value)}
-              rows={2}
-              placeholder="Scene area, witness, device, document, lab, agency, or record source."
-            />
-          </label>
-          <label>
-            <span>
-              Gaps / follow-up <em>Required</em>
-            </span>
-            <textarea
-              value={activeData.gaps}
-              onChange={(event) => onTrackChange(activeTrack.id, "gaps", event.target.value)}
-              rows={2}
-              placeholder="What still needs to be collected, confirmed, tested, or reviewed?"
-            />
-          </label>
-          <label className="wide">
-            <span>
-              Notes <em>Facts, not assumptions</em>
-            </span>
-            <textarea
-              value={activeData.notes}
-              onChange={(event) => onTrackChange(activeTrack.id, "notes", event.target.value)}
-              rows={4}
-              placeholder="Record the actual collected data, source reliability, contradictions, and limits."
-            />
-          </label>
-        </div>
-        <div className="photo-capture-panel">
-          <div>
-            <h4>Photo Capture and Analysis</h4>
-            <p>
-              On a phone, use this control to take a scene photo for this exact data category. The analysis is
-              decision-support only and must be reviewed by the investigator.
-            </p>
-          </div>
-          <label className="photo-input-label">
-            <span>
-              Add photo <em>Camera or upload</em>
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(event) => onPhotoAnalyze(activeTrack.id, event)}
-              disabled={photoLoadingTrack === activeTrack.id}
-            />
-          </label>
-          {photoLoadingTrack === activeTrack.id ? <p className="export-status">Analyzing photo for this data category...</p> : null}
-          <PhotoAnalysisList photos={activeData.photos} />
-        </div>
-      </div>
-    </section>
+  const officers = [...notes.matchAll(/#\s*(\d+)\s+Fire\s*fighter\s+([A-Za-z.' -]+)/gi)].map((match) =>
+    `#${match[1]} Firefighter ${match[2].replace(/\s+(in charge|driven by|led by).*$/i, "").trim()}`
   );
-}
-
-function OperationalStepsPanel({
-  stage,
-  activeOperationId,
-  setActiveOperationId,
-  operationSteps,
-  onOperationChange,
-  onOperationFileImport,
-  intakeLoadingTarget
-}) {
-  const operations = stage.operations || [];
-
-  if (!operations.length) {
-    return null;
+  if (officers.length) {
+    data.officersAttending = [...new Set(officers)].join(", ");
   }
 
-  const activeOperation = operations.find((operation) => operation.id === activeOperationId) || operations[0];
-  const activeData = operationSteps?.[activeOperation.id] || {
-    status: "Not Started",
-    notes: "",
-    records: "",
-    gaps: "",
-    intakeFiles: []
-  };
-
-  return (
-    <section className="operation-panel" aria-label={`${stage.title} operational steps`}>
-      <div className="subsection-title">
-        <h3>Operational Sequence</h3>
-        <p>Work these steps in order. Record facts, source-linked records, and unresolved gaps before moving on.</p>
-      </div>
-
-      <div className="process-tabs operation-tabs" role="tablist" aria-label={`${stage.title} step sequence`}>
-        {operations.map((operation, index) => (
-          <button
-            key={operation.id}
-            type="button"
-            className={activeOperation.id === operation.id ? "active" : ""}
-            onClick={() => setActiveOperationId(stage.id, operation.id)}
-          >
-            <span>{String(index + 1).padStart(2, "0")}</span>
-            {operation.title}
-          </button>
-        ))}
-      </div>
-
-      <div className="operation-detail">
-        <div className="operation-guidance">
-          <div>
-            <h4>Action</h4>
-            <p>{activeOperation.action}</p>
-          </div>
-          <div>
-            <h4>Collect / Confirm</h4>
-            <ul>
-              {activeOperation.collect.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>Complete When</h4>
-            <p>{activeOperation.completeWhen}</p>
-          </div>
-        </div>
-
-        <div className="form-grid">
-          <label>
-            <span>
-              Step status <em>Operational</em>
-            </span>
-            <select
-              value={activeData.status}
-              onChange={(event) => onOperationChange(stage.id, activeOperation.id, "status", event.target.value)}
-            >
-              {investigationStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>
-              Records collected <em>Source-linked</em>
-            </span>
-            <textarea
-              value={activeData.records}
-              onChange={(event) => onOperationChange(stage.id, activeOperation.id, "records", event.target.value)}
-              rows={2}
-              placeholder="Photos, witness/source, document, device, measurement, sample, log, or record reference."
-            />
-          </label>
-          <label className="wide">
-            <span>
-              Step notes <em>Facts and decisions</em>
-            </span>
-            <textarea
-              value={activeData.notes}
-              onChange={(event) => onOperationChange(stage.id, activeOperation.id, "notes", event.target.value)}
-              rows={3}
-              placeholder="Record what was done, observed, collected, tested, eliminated, or deferred."
-            />
-          </label>
-          <label className="wide">
-            <span>
-              Gaps / next action <em>Before completion</em>
-            </span>
-            <textarea
-              value={activeData.gaps}
-              onChange={(event) => onOperationChange(stage.id, activeOperation.id, "gaps", event.target.value)}
-              rows={2}
-              placeholder="Unknowns, unconfirmed information, contradictions, safety concerns, or follow-up tasks."
-            />
-          </label>
-        </div>
-
-        <div className="intake-upload-panel">
-          <div>
-            <h4>Upload Intake Source</h4>
-            <p>
-              Add PDF, Word, text, or image source material for this operation. Extracted information is appended for
-              officer review and should not be treated as confirmed until checked.
-            </p>
-          </div>
-          <label className="photo-input-label">
-            <span>
-              Intake file <em>PDF, Word, text, image</em>
-            </span>
-            <input
-              type="file"
-              accept=".txt,.md,.csv,.json,.rtf,.pdf,.docx,image/*"
-              onChange={(event) => onOperationFileImport(stage.id, activeOperation.id, event)}
-              disabled={intakeLoadingTarget === `${stage.id}:${activeOperation.id}`}
-            />
-          </label>
-          {intakeLoadingTarget === `${stage.id}:${activeOperation.id}` ? (
-            <p className="export-status">Extracting source information for this operation...</p>
-          ) : null}
-          {activeData.intakeFiles?.length ? (
-            <div className="intake-file-list">
-              {activeData.intakeFiles.map((item) => (
-                <div key={item.id}>
-                  <strong>{item.fileName}</strong>
-                  <span>{item.summary || "Source extracted for officer review."}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ReportWriteupPanel({ reportWriteup, onReportChange, onBuildDraft }) {
-  return (
-    <section className="report-writeup-panel" aria-label="Investigation report write-up">
-      <div className="subsection-title">
-        <h3>Investigation Report Write-up</h3>
-        <p>
-          Use the Grenada report example as the structure guide. Draft only from collected data, tested analysis,
-          and clearly marked unresolved gaps.
-        </p>
-      </div>
-
-      <div className="report-template-note">
-        <strong>Report order:</strong> Cover, definitions, overview, general information, investigation, scene
-        examination, origin, ignition source/cause, samples, conclusion, appendices.
-      </div>
-
-      <button type="button" className="secondary-action" onClick={onBuildDraft}>
-        Build Draft from Investigation Notes
-      </button>
-
-      <div className="report-section-list">
-        {reportSections.map((section) => (
-          <label key={section.id} className="wide report-section-editor">
-            <span>
-              {section.title} <em>Grenada report guide</em>
-            </span>
-            <small>{section.guidance}</small>
-            <textarea
-              value={reportWriteup?.[section.id] || ""}
-              onChange={(event) => onReportChange(section.id, event.target.value)}
-              rows={section.id === "investigation" || section.id === "originAnalysis" || section.id === "causeAnalysis" ? 8 : 5}
-              placeholder="Draft this section from investigation facts. Leave missing items bracketed or flagged."
-            />
-          </label>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function StageCard({
-  stage,
-  data,
-  onChange,
-  activeOperationId,
-  setActiveOperationId,
-  onOperationChange,
-  onOperationFileImport,
-  intakeLoadingTarget,
-  onReportChange,
-  onBuildReportDraft,
-  activeDataTrackId,
-  setActiveDataTrackId,
-  onDataTrackChange,
-  activeSceneStepId,
-  setActiveSceneStepId,
-  onSceneStepChange,
-  onAddSceneEntry,
-  onSetActiveSceneEntry,
-  onScenePhotoAnalyze,
-  onPhotoAnalyze,
-  photoLoadingTarget
-}) {
-  return (
-    <section className="investigation-stage">
-      <div className="stage-header">
-        <div>
-          <p className="eyebrow">{stage.code}</p>
-          <h3>{stage.title}</h3>
-        </div>
-        <label>
-          <span>
-            Status <em>Stage</em>
-          </span>
-          <select value={data.status} onChange={(event) => onChange(stage.id, "status", event.target.value)}>
-            {investigationStatuses.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <p>{stage.mission}</p>
-
-      <OperationalStepsPanel
-        stage={stage}
-        activeOperationId={activeOperationId}
-        setActiveOperationId={setActiveOperationId}
-        operationSteps={data.operationSteps}
-        onOperationChange={onOperationChange}
-        onOperationFileImport={onOperationFileImport}
-        intakeLoadingTarget={intakeLoadingTarget}
-      />
-
-      <details className="stage-guidance">
-        <summary>Stage guidance</summary>
-        <div className="stage-columns">
-          <div>
-            <h4>Checklist</h4>
-            <ul>
-              {stage.checkpoints.map((checkpoint) => (
-                <li key={checkpoint}>{checkpoint}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>Expected Outputs</h4>
-            <ul>
-              {stage.outputs.map((output) => (
-                <li key={output}>{output}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </details>
-
-      <div className="form-grid">
-        <label className="wide">
-          <span>
-            Investigation notes <em>Facts and decisions</em>
-          </span>
-          <textarea
-            value={data.notes}
-            onChange={(event) => onChange(stage.id, "notes", event.target.value)}
-            rows={4}
-            placeholder="Record facts collected, decisions made, source details, or reason this stage is not applicable."
-          />
-        </label>
-        <label>
-          <span>
-            Evidence / data <em>Source-linked</em>
-          </span>
-          <textarea
-            value={data.evidence}
-            onChange={(event) => onChange(stage.id, "evidence", event.target.value)}
-            rows={3}
-            placeholder="Photos, samples, witness data, lab data, CCTV, plans, measurements, or records."
-          />
-        </label>
-        <label>
-          <span>
-            Hypotheses / analysis <em>Tested, not assumed</em>
-          </span>
-          <textarea
-            value={data.hypotheses}
-            onChange={(event) => onChange(stage.id, "hypotheses", event.target.value)}
-            rows={3}
-            placeholder="Supporting facts, contradictory facts, confidence level, and testing needed."
-          />
-        </label>
-        <label className="wide">
-          <span>
-            Missing information <em>Do not guess</em>
-          </span>
-          <textarea
-            value={data.missingInfo}
-            onChange={(event) => onChange(stage.id, "missingInfo", event.target.value)}
-            rows={2}
-            placeholder="List unknown, unconfirmed, contradictory, or officer-review-required information."
-          />
-        </label>
-      </div>
-
-      {stage.id === "dataCollection" ? (
-        <>
-          <SceneExaminationPanel
-            activeStepId={activeSceneStepId}
-            sceneExamination={data.sceneExamination}
-            setActiveStepId={setActiveSceneStepId}
-            onStepChange={onSceneStepChange}
-            onAddSceneEntry={onAddSceneEntry}
-            onSetActiveSceneEntry={onSetActiveSceneEntry}
-            onPhotoAnalyze={onScenePhotoAnalyze}
-            photoLoadingTarget={photoLoadingTarget}
-          />
-          <DataCollectionTrackPanel
-            activeTrackId={activeDataTrackId}
-            dataTracks={data.dataTracks}
-            onTrackChange={onDataTrackChange}
-            setActiveTrackId={setActiveDataTrackId}
-            onPhotoAnalyze={onPhotoAnalyze}
-            photoLoadingTrack={photoLoadingTarget?.startsWith("data:") ? photoLoadingTarget.replace("data:", "") : ""}
-          />
-        </>
-      ) : null}
-
-      {stage.id === "reportingReview" ? (
-        <ReportWriteupPanel
-          reportWriteup={data.reportWriteup}
-          onReportChange={onReportChange}
-          onBuildDraft={onBuildReportDraft}
-        />
-      ) : null}
-    </section>
-  );
-}
-
-function formatAssistantError(error) {
-  const message = String(error?.message || error || "Fire Investigation AI Agent request failed.");
-  if (/failed to fetch|networkerror|load failed/i.test(message)) {
-    return "The server-side Fire Investigation AI Agent route could not be reached. Confirm the app server is running, then try again.";
+  const personnel = [
+    ...notes.matchAll(/#?\s*(\d{3,5})\s+(FF|F\/F|Firefighter|Fire\s*fighter|LFF|Sub Officer|Station Officer)\s+([A-Za-z.'-]+)/gi)
+  ].map((match) => `${match[1]} ${match[2].replace(/fire\s*fighter/i, "Firefighter")} ${match[3]}`);
+  if (personnel.length) {
+    data.personnelAttendingDetails = [...new Set(personnel)].join(", ");
   }
-  return message;
-}
 
-function readAuthStore() {
-  try {
-    return JSON.parse(localStorage.getItem(authStorageKey) || '{"users":{}}');
-  } catch {
-    return { users: {} };
+  const inChargeMatch = notes.match(/#\s*(\d+)\s+Fire\s*fighter\s+([A-Za-z.' -]+?)\s+in charge/i);
+  if (inChargeMatch) {
+    data.seniorOfficersAttending = `#${inChargeMatch[1]} Firefighter ${inChargeMatch[2].trim()} in charge`;
   }
-}
 
-function writeAuthStore(store) {
-  localStorage.setItem(authStorageKey, JSON.stringify(store));
-}
-
-function normalizeEmail(email) {
-  return String(email || "").trim().toLowerCase();
-}
-
-function generateVerificationCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-async function hashPassword(password) {
-  const source = `ttfs-fire-investigation:${password}`;
-  if (globalThis.crypto?.subtle) {
-    const data = new TextEncoder().encode(source);
-    const digest = await globalThis.crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
+  const propertyDescription = extractBetween(notes, "Involved was\\s+", ",\\s*valued at");
+  if (propertyDescription) {
+    data.typeOfProperty = improveSentence(propertyDescription);
   }
-  return btoa(source);
-}
 
-function AuthGate({ onAuthenticated }) {
-  const [mode, setMode] = useState("signin");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [pendingCode, setPendingCode] = useState("");
-  const [pendingEmail, setPendingEmail] = useState("");
-  const [status, setStatus] = useState("");
-  const [loading, setLoading] = useState(false);
+  const valuesDamage = extractBetween(notes, "valued at\\s+", "A fire investigation was conducted");
+  if (valuesDamage) {
+    data.insuranceDetails = improveSentence(valuesDamage);
+  }
 
-  async function registerUser(event) {
-    event.preventDefault();
-    const cleanName = name.trim();
-    const cleanEmail = normalizeEmail(email);
-
-    if (!cleanName || !cleanEmail || password.length < 8) {
-      setStatus("Enter your name, a valid email, and a password with at least 8 characters.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const store = readAuthStore();
-      const code = generateVerificationCode();
-      store.users[cleanEmail] = {
-        name: cleanName,
-        email: cleanEmail,
-        passwordHash: await hashPassword(password),
-        verified: false,
-        verificationCode: code,
-        createdAt: new Date().toISOString()
-      };
-      writeAuthStore(store);
-      setPendingCode(code);
-      setPendingEmail(cleanEmail);
-      setMode("verify");
-      setStatus("Verification required before sign in.");
-    } finally {
-      setLoading(false);
+  const damageParts = [];
+  const buildingValue = notes.match(/valued\s+at[\s\S]{0,140}?\(\$?([0-9,]+(?:\.\d{2})?)\)/i);
+  const stockValue = notes.match(/value\s+of\s+the\s+stock\s+was[\s\S]{0,140}?\(\$?([0-9,]+(?:\.\d{2})?)\)/i);
+  const buildingDamage = notes.match(/damages?\s+to\s+the\s+building\s+estimated\s+at\s+([^.)]+(?:\([^)]*\))?)/i);
+  const stockDamage = notes.match(/damages?\s+to\s+the\s+stock\s+valued\s+approximately\s+([^.)]+(?:\([^)]*\))?)/i);
+  if (buildingValue) {
+    data.valueBuilding = cleanMoneyValue(buildingValue[1]);
+  }
+  if (stockValue) {
+    data.valueStock = cleanMoneyValue(stockValue[1]);
+  }
+  if (buildingDamage) {
+    damageParts.push(`Damage to the building was estimated at ${buildingDamage[1].trim()}.`);
+    const amount =
+      buildingDamage[1].match(/\(\$?([0-9,]+(?:\.\d{2})?)\)/) ||
+      buildingDamage[1].match(/\$?\s*([0-9][0-9,]*(?:\.\d{2})?)/);
+    if (amount) {
+      data.damageBuilding = cleanMoneyValue(amount[1]);
     }
   }
-
-  function verifyUser(event) {
-    event.preventDefault();
-    const cleanEmail = normalizeEmail(pendingEmail || email);
-    const store = readAuthStore();
-    const user = store.users[cleanEmail];
-
-    if (!user || user.verificationCode !== verificationCode.trim()) {
-      setStatus("Verification code is incorrect.");
-      return;
-    }
-
-    store.users[cleanEmail] = {
-      ...user,
-      verified: true,
-      verificationCode: ""
-    };
-    writeAuthStore(store);
-    setEmail(cleanEmail);
-    setPassword("");
-    setVerificationCode("");
-    setMode("signin");
-    setStatus("Email verified. You can now sign in.");
-  }
-
-  async function signInUser(event) {
-    event.preventDefault();
-    const cleanEmail = normalizeEmail(email);
-    const store = readAuthStore();
-    const user = store.users[cleanEmail];
-
-    if (!user) {
-      setStatus("No registered account was found for that email.");
-      return;
-    }
-
-    if (!user.verified) {
-      setPendingEmail(cleanEmail);
-      setPendingCode(user.verificationCode || "");
-      setMode("verify");
-      setStatus("Verify your email before signing in.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const passwordHash = await hashPassword(password);
-      if (passwordHash !== user.passwordHash) {
-        setStatus("Password is incorrect.");
-        return;
-      }
-
-      const session = {
-        name: user.name,
-        email: user.email,
-        signedInAt: new Date().toISOString()
-      };
-      localStorage.setItem(authSessionKey, JSON.stringify(session));
-      onAuthenticated(session);
-    } finally {
-      setLoading(false);
+  if (stockDamage) {
+    damageParts.push(`Damage to the stock was valued approximately ${stockDamage[1].trim()}.`);
+    const amount =
+      stockDamage[1].match(/\(\$?([0-9,]+(?:\.\d{2})?)\)/) ||
+      stockDamage[1].match(/\$?\s*([0-9][0-9,]*(?:\.\d{2})?)/);
+    if (amount) {
+      data.damageStock = cleanMoneyValue(amount[1]);
     }
   }
-
-  return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <div className="auth-brand">
-          <p className="eyebrow">Secure Access</p>
-          <h1>Fire Investigation</h1>
-          <p>Register, verify your email, then sign in to access the investigation workspace.</p>
-        </div>
-
-        <div className="auth-panel">
-          <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
-            <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")}>
-              Sign In
-            </button>
-            <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>
-              Register
-            </button>
-          </div>
-
-          {mode === "register" ? (
-            <form className="auth-form" onSubmit={registerUser}>
-              <label>
-                <span>Name</span>
-                <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" />
-              </label>
-              <label>
-                <span>Email</span>
-                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
-              </label>
-              <label>
-                <span>Password <em>8 characters minimum</em></span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete="new-password"
-                />
-              </label>
-              <button type="submit" disabled={loading}>
-                {loading ? "Creating Account..." : "Create Account"}
-              </button>
-            </form>
-          ) : null}
-
-          {mode === "verify" ? (
-            <form className="auth-form" onSubmit={verifyUser}>
-              <label>
-                <span>Email</span>
-                <input type="email" value={pendingEmail || email} onChange={(event) => setPendingEmail(event.target.value)} />
-              </label>
-              <label>
-                <span>Verification Code</span>
-                <input
-                  inputMode="numeric"
-                  value={verificationCode}
-                  onChange={(event) => setVerificationCode(event.target.value)}
-                  placeholder="Enter 6-digit code"
-                />
-              </label>
-              {pendingCode ? <p className="auth-code">Development verification code: {pendingCode}</p> : null}
-              <button type="submit">Verify Email</button>
-            </form>
-          ) : null}
-
-          {mode === "signin" ? (
-            <form className="auth-form" onSubmit={signInUser}>
-              <label>
-                <span>Email</span>
-                <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
-              </label>
-              <label>
-                <span>Password</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete="current-password"
-                />
-              </label>
-              <button type="submit" disabled={loading}>
-                {loading ? "Signing In..." : "Sign In"}
-              </button>
-            </form>
-          ) : null}
-
-          {status ? <p className="auth-status">{status}</p> : null}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-export default function Home() {
-  const [authSession, setAuthSession] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [investigation, setInvestigation] = useState(initialInvestigation);
-  const [activeStageId, setActiveStageId] = useState("preScene");
-  const [activeOperationByStage, setActiveOperationByStage] = useState(() =>
-    investigationStages.reduce(
-      (active, stage) => ({
-        ...active,
-        [stage.id]: stage.operations?.[0]?.id || ""
-      }),
-      {}
-    )
-  );
-  const [activeDataTrackId, setActiveDataTrackId] = useState(dataCollectionTracks[0].id);
-  const [activeSceneStepId, setActiveSceneStepId] = useState(sceneExaminationSteps[0].id);
-  const [agentQuestion, setAgentQuestion] = useState("");
-  const [agentStageFocus, setAgentStageFocus] = useState("");
-  const [agentResult, setAgentResult] = useState(null);
-  const [agentStatus, setAgentStatus] = useState("");
-  const [agentLoading, setAgentLoading] = useState(false);
-  const [aiActionLoading, setAiActionLoading] = useState("");
-  const [photoLoadingTarget, setPhotoLoadingTarget] = useState("");
-  const [intakeLoadingTarget, setIntakeLoadingTarget] = useState("");
-
-  const progress = useMemo(() => calculateProgress(investigation), [investigation]);
-  const openItems = useMemo(() => buildOpenItems(investigation), [investigation]);
-  const summary = useMemo(() => buildInvestigationSummary(investigation), [investigation]);
-  const activeStage = investigationStages.find((stage) => stage.id === activeStageId) || investigationStages[0];
-
-  useEffect(() => {
-    try {
-      const savedSession = JSON.parse(localStorage.getItem(authSessionKey) || "null");
-      setAuthSession(savedSession);
-    } catch {
-      setAuthSession(null);
-    } finally {
-      setAuthChecked(true);
-    }
-  }, []);
-
-  function signOut() {
-    localStorage.removeItem(authSessionKey);
-    setAuthSession(null);
+  if (damageParts.length) {
+    data.descriptionOfDamage = damageParts.join(" ");
   }
 
-  function updateStage(stageId, key, value) {
-    setInvestigation((current) => ({
-      ...current,
-      [stageId]: {
-        ...current[stageId],
-        [key]: value
-      }
-    }));
-  }
-
-  function setActiveOperationId(stageId, operationId) {
-    setActiveOperationByStage((current) => ({
-      ...current,
-      [stageId]: operationId
-    }));
-  }
-
-  function updateOperationStep(stageId, operationId, key, value) {
-    setInvestigation((current) => ({
-      ...current,
-      [stageId]: {
-        ...current[stageId],
-        operationSteps: {
-          ...current[stageId].operationSteps,
-          [operationId]: {
-            ...current[stageId].operationSteps[operationId],
-            [key]: value
-          }
-        }
-      }
-    }));
-  }
-
-  function updateReportWriteup(sectionId, value) {
-    setInvestigation((current) => ({
-      ...current,
-      reportingReview: {
-        ...current.reportingReview,
-        reportWriteup: {
-          ...current.reportingReview.reportWriteup,
-          [sectionId]: value
-        }
-      }
-    }));
-  }
-
-  function buildDraftReportFromInvestigation() {
-    setInvestigation((current) => ({
-      ...current,
-      reportingReview: {
-        ...current.reportingReview,
-        reportWriteup: {
-          ...current.reportingReview.reportWriteup,
-          ...buildReportDraft(current)
-        }
-      }
-    }));
-  }
-
-  function appendText(existing, addition) {
-    const cleanAddition = String(addition || "").trim();
-    if (!cleanAddition) {
-      return existing || "";
-    }
-    return [existing, cleanAddition].filter((value) => String(value || "").trim()).join("\n\n");
-  }
-
-  async function importOperationFile(stageId, operationId, event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
-    const stage = investigationStages.find((item) => item.id === stageId);
-    const operation = stage?.operations?.find((item) => item.id === operationId);
-    const loadingKey = `${stageId}:${operationId}`;
-    setIntakeLoadingTarget(loadingKey);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("stageTitle", stage?.title || stageId);
-      formData.append("operationTitle", operation?.title || operationId);
-
-      const response = await fetch("/api/intake-file", {
-        method: "POST",
-        body: formData
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "File intake failed.");
-      }
-
-      const suggestionText = [
-        result.suggestions?.preSceneNotes,
-        result.suggestions?.initialIntelligence,
-        result.reviewWarning
-      ]
-        .filter(Boolean)
-        .join("\n");
-      const extractedPreview = String(result.extractedText || "").slice(0, 2500);
-      const intakeRecord = {
-        id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${file.name}`,
-        fileName: result.fileName || file.name,
-        fileType: result.fileType || file.type || "unknown",
-        summary: suggestionText || "Source extracted for officer review.",
-        extractedAt: new Date().toISOString()
-      };
-
-      setInvestigation((current) => {
-        const currentStage = current[stageId] || {};
-        const currentOperation = currentStage.operationSteps?.[operationId] || {};
-        const updatedOperation = {
-          ...currentOperation,
-          records: appendText(
-            currentOperation.records,
-            `Uploaded source: ${intakeRecord.fileName}\n${suggestionText || "[No obvious initial fields identified]"}`
-          ),
-          notes: appendText(currentOperation.notes, extractedPreview ? `Extracted text preview:\n${extractedPreview}` : ""),
-          gaps: appendText(currentOperation.gaps, result.reviewWarning),
-          intakeFiles: [intakeRecord, ...(currentOperation.intakeFiles || [])]
-        };
-
-        const stageUpdates =
-          stageId === "preScene"
-            ? {
-                notes: appendText(currentStage.notes, result.suggestions?.preSceneNotes),
-                evidence: appendText(
-                  currentStage.evidence,
-                  `Initial intelligence source ${intakeRecord.fileName}:\n${result.suggestions?.initialIntelligence || extractedPreview}`
-                ),
-                missingInfo: appendText(currentStage.missingInfo, result.reviewWarning)
-              }
-            : {};
-
-        return {
-          ...current,
-          [stageId]: {
-            ...currentStage,
-            ...stageUpdates,
-            operationSteps: {
-              ...currentStage.operationSteps,
-              [operationId]: updatedOperation
-            }
-          }
-        };
-      });
-    } catch (error) {
-      setAgentStatus(formatAssistantError(error));
-    } finally {
-      setIntakeLoadingTarget("");
-    }
-  }
-
-  function updateDataTrack(trackId, key, value) {
-    setInvestigation((current) => ({
-      ...current,
-      dataCollection: {
-        ...current.dataCollection,
-        dataTracks: {
-          ...current.dataCollection.dataTracks,
-          [trackId]: {
-            ...current.dataCollection.dataTracks[trackId],
-            [key]: value
-          }
-        }
-      }
-    }));
-  }
-
-  function setActiveSceneEntry(stepId, entryId) {
-    setInvestigation((current) => ({
-      ...current,
-      dataCollection: {
-        ...current.dataCollection,
-        sceneExamination: {
-          ...current.dataCollection.sceneExamination,
-          [stepId]: {
-            ...current.dataCollection.sceneExamination[stepId],
-            activeEntryId: entryId
-          }
-        }
-      }
-    }));
-  }
-
-  function addSceneEntry(stepId) {
-    const step = sceneExaminationSteps.find((item) => item.id === stepId) || sceneExaminationSteps[0];
-
-    setInvestigation((current) => {
-      const currentStep = current.dataCollection.sceneExamination[stepId] || {};
-      const existingEntries = currentStep.entries?.length ? currentStep.entries : [currentStep];
-      const entry = createSceneEntry(step, existingEntries.length);
-
-      return {
-        ...current,
-        dataCollection: {
-          ...current.dataCollection,
-          sceneExamination: {
-            ...current.dataCollection.sceneExamination,
-            [stepId]: {
-              ...currentStep,
-              activeEntryId: entry.id,
-              entries: [...existingEntries, entry]
-            }
-          }
-        }
-      };
-    });
-  }
-
-  function updateSceneStep(stepId, entryId, key, value) {
-    setInvestigation((current) => {
-      const currentStep = current.dataCollection.sceneExamination[stepId] || {};
-      const entries = currentStep.entries?.length ? currentStep.entries : [currentStep];
-      const updatedEntries = entries.map((entry) => (entry.id === entryId ? { ...entry, [key]: value } : entry));
-      const activeEntry = updatedEntries.find((entry) => entry.id === entryId) || updatedEntries[0];
-
-      return {
-        ...current,
-        dataCollection: {
-          ...current.dataCollection,
-          sceneExamination: {
-            ...current.dataCollection.sceneExamination,
-            [stepId]: {
-              ...currentStep,
-              [key]: activeEntry?.[key] || currentStep[key] || "",
-              activeEntryId: entryId,
-              entries: updatedEntries
-            }
-          }
-        }
-      };
-    });
-  }
-
-  async function analyzeDataCollectionPhoto(trackId, event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
-    const track = dataCollectionTracks.find((item) => item.id === trackId);
-    setPhotoLoadingTarget(`data:${trackId}`);
-
-    try {
-      const image = await fileToDataUrl(file);
-      const response = await fetch("/api/analyze-photo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image,
-          analysisMode: "fire-investigation",
-          imageInfo: {
-            fileName: file.name,
-            type: file.type,
-            size: file.size
-          },
-          investigationContext: {
-            stage: "2000 Data Collection",
-            trackTitle: track?.title || "Data Collection",
-            trackCode: track?.code || "2000"
-          },
-          location: {
-            placeName: track?.title || "Data Collection"
-          }
-        })
-      });
-      const analysis = await response.json();
-
-      if (!response.ok) {
-        throw new Error(analysis.error || "Photo analysis failed.");
-      }
-
-      setInvestigation((current) => {
-        const currentTrack = current.dataCollection.dataTracks[trackId] || {};
-        const existingPhotos = currentTrack.photos || [];
-        const photoRecord = {
-          id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${file.name}`,
-          fileName: file.name,
-          label: track?.title || "Data Collection",
-          capturedAt: new Date().toISOString(),
-          analysis
-        };
-
-        return {
-          ...current,
-          dataCollection: {
-            ...current.dataCollection,
-            dataTracks: {
-              ...current.dataCollection.dataTracks,
-              [trackId]: {
-                ...currentTrack,
-                photos: [photoRecord, ...existingPhotos]
-              }
-            }
-          }
-        };
-      });
-    } catch (error) {
-      setAgentStatus(formatAssistantError(error));
-    } finally {
-      setPhotoLoadingTarget("");
-    }
-  }
-
-  async function analyzeSceneExaminationPhoto(stepId, entryId, event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
-    const step = sceneExaminationSteps.find((item) => item.id === stepId);
-    const stepData = investigation.dataCollection.sceneExamination[stepId] || {};
-    const entries = stepData.entries?.length ? stepData.entries : [stepData];
-    const entry = entries.find((item) => item.id === entryId) || entries[0] || {};
-    const label = entry.areaLabel?.trim() || stepData.areaLabel?.trim() || step?.title || "Scene Examination";
-    setPhotoLoadingTarget(`scene:${stepId}:${entryId}`);
-
-    try {
-      const image = await fileToDataUrl(file);
-      const response = await fetch("/api/analyze-photo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image,
-          analysisMode: "fire-investigation",
-          imageInfo: {
-            fileName: file.name,
-            type: file.type,
-            size: file.size
-          },
-          investigationContext: {
-            stage: step?.title || "Scene Examination",
-            trackTitle: label,
-            trackCode: step?.code || "Scene"
-          },
-          location: {
-            placeName: label
-          }
-        })
-      });
-      const analysis = await response.json();
-
-      if (!response.ok) {
-        throw new Error(analysis.error || "Photo analysis failed.");
-      }
-
-      setInvestigation((current) => {
-        const currentStep = current.dataCollection.sceneExamination[stepId] || {};
-        const entries = currentStep.entries?.length ? currentStep.entries : [currentStep];
-        const photoRecord = {
-          id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${file.name}`,
-          fileName: file.name,
-          label,
-          capturedAt: new Date().toISOString(),
-          analysis
-        };
-        const updatedEntries = entries.map((item) =>
-          item.id === entryId ? { ...item, photos: [photoRecord, ...(item.photos || [])] } : item
-        );
-        const activeEntry = updatedEntries.find((item) => item.id === entryId) || updatedEntries[0];
-
-        return {
-          ...current,
-          dataCollection: {
-            ...current.dataCollection,
-            sceneExamination: {
-              ...current.dataCollection.sceneExamination,
-              [stepId]: {
-                ...currentStep,
-                areaLabel: activeEntry?.areaLabel || currentStep.areaLabel || "",
-                observationFocus: activeEntry?.observationFocus || currentStep.observationFocus || "",
-                notes: activeEntry?.notes || currentStep.notes || "",
-                gaps: activeEntry?.gaps || currentStep.gaps || "",
-                photos: activeEntry?.photos || currentStep.photos || [],
-                activeEntryId: entryId,
-                entries: updatedEntries
-              }
-            }
-          }
-        };
-      });
-    } catch (error) {
-      setAgentStatus(formatAssistantError(error));
-    } finally {
-      setPhotoLoadingTarget("");
-    }
-  }
-
-  async function askAgent() {
-    return askAgentWithQuestion({
-      question: agentQuestion,
-      stageFocus: agentStageFocus || "General investigation question",
-      loadingLabel: "freeform"
-    });
-  }
-
-  async function askAgentWithQuestion({ question, stageFocus, loadingLabel }) {
-    setAgentLoading(true);
-    setAiActionLoading(loadingLabel || "freeform");
-    setAgentStatus("Consulting the Fire Investigation AI Agent...");
-    setAgentResult(null);
-
-    try {
-      const response = await fetch("/api/fire-investigation-agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question,
-          activeStage: stageFocus,
-          investigation,
-          investigationSummary: summary,
-          form: {}
-        })
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Fire Investigation AI Agent request failed.");
-      }
-
-      setAgentResult(result);
-      setAgentStatus(
-        result.connectedAgent
-          ? "Connected agent response complete."
-          : "Fire investigation model response complete. Review before acting."
-      );
-    } catch (error) {
-      setAgentStatus(formatAssistantError(error));
-    } finally {
-      setAgentLoading(false);
-      setAiActionLoading("");
-    }
-  }
-
-  function analyzeOriginWithAgent() {
-    setActiveStageId("originDetermination");
-    return askAgentWithQuestion({
-      loadingLabel: "origin",
-      stageFocus: "3000-3200 Origin Determination",
-      question:
-        "Using every completed field, uploaded/extracted intake note, scene examination entry, data collection track, photo analysis summary, witness/digital source, evidence note, and missing-information field in the investigation state, assist with origin determination. Identify supported sector/area/point of origin hypotheses, supporting facts, contradictory facts, what can be eliminated, what cannot be eliminated, and what additional data is required. Do not invent facts or state a final origin beyond the support provided."
-    });
-  }
-
-  function analyzeCauseWithAgent() {
-    setActiveStageId("causeDetermination");
-    return askAgentWithQuestion({
-      loadingLabel: "cause",
-      stageFocus: "4000-4300 Cause Determination",
-      question:
-        "Using every completed field, uploaded/extracted intake note, scene examination entry, data collection track, photo analysis summary, witness/digital source, evidence note, origin analysis field, and missing-information field in the investigation state, assist with cause determination. Identify possible ignition sources, first fuel/material ignited, oxidant, ignition sequence, supporting facts, contradictory facts, hypotheses that can or cannot be eliminated, and whether the cause classification must remain Undetermined. Use only Natural, Accidental, Incendiary, or Undetermined if classification is discussed."
-    });
-  }
-
-  async function draftReportWithAgent() {
-    setAiActionLoading("report");
-    setAgentStatus("Drafting the investigation report from all current fields...");
-    setAgentResult(null);
-
-    try {
-      const response = await fetch("/api/investigation-report-draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          investigation,
-          investigationSummary: summary,
-          existingReportWriteup: investigation.reportingReview.reportWriteup
-        })
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Investigation report drafting failed.");
-      }
-
-      setInvestigation((current) => ({
-        ...current,
-        reportingReview: {
-          ...current.reportingReview,
-          reportWriteup: {
-            ...current.reportingReview.reportWriteup,
-            ...result.reportWriteup
-          },
-          operationSteps: {
-            ...current.reportingReview.operationSteps,
-            writeInvestigationReport: {
-              ...current.reportingReview.operationSteps.writeInvestigationReport,
-              status: "In Progress",
-              records: appendText(
-                current.reportingReview.operationSteps.writeInvestigationReport.records,
-                "AI-generated investigation report draft inserted into report write-up sections."
-              ),
-              gaps: appendText(
-                current.reportingReview.operationSteps.writeInvestigationReport.gaps,
-                [...(result.missingInformation || []), ...(result.concerns || [])].join("\n")
-              )
-            }
-          }
-        }
-      }));
-      setActiveStageId("reportingReview");
-      setAgentResult({
-        answer: "The report write-up sections were drafted from the current investigation fields. Review every section before relying on it.",
-        concerns: result.concerns || [],
-        suggestedUpdates: [...(result.originGuidance || []), ...(result.causeGuidance || [])],
-        missingInformation: result.missingInformation || [],
-        stageFocus: "5000-5100 Reporting and Review"
-      });
-      setAgentStatus("Investigation report draft inserted into the Reporting and Review section.");
-    } catch (error) {
-      setAgentStatus(formatAssistantError(error));
-    } finally {
-      setAiActionLoading("");
-    }
-  }
-
-  if (!authChecked) {
-    return (
-      <main className="auth-shell">
-        <section className="auth-card">
-          <p className="eyebrow">Loading</p>
-          <h1>Fire Investigation</h1>
-        </section>
-      </main>
+  const causeNarrative = extractBetween(notes, "The Area of Origin\\s+", "$");
+  if (causeNarrative) {
+    data.additionalInformation = improveSentence(
+      `A fire investigation was conducted. The Area of Origin ${causeNarrative}`
     );
   }
 
-  if (!authSession) {
-    return <AuthGate onAuthenticated={setAuthSession} />;
+  const investigationTime = notes.match(/started\s+at\s+(\d{3,4})\s*hours/i);
+  if (investigationTime && !data.timeCallReceived) {
+    concerns.push("Investigation start time was detected, but call received time was not identified.");
+  }
+
+  if (/direct application of an open flame/i.test(notes)) {
+    concerns.push(
+      "Open flame language detected. Select the official cause classification only after officer confirmation."
+    );
+  }
+
+  if (!/extinguish|extinguished|hose|jet|water|foam|dry powder/i.test(notes)) {
+    concerns.push("Could not identify how the fire was extinguished.");
+  }
+
+  return { data, concerns };
+}
+
+function inferBulkData(notes) {
+  const lines = notes
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const { data, usedLines } = extractLabeledData(lines);
+  const narrativeResult = extractNarrativeData(notes);
+  Object.entries(narrativeResult.data).forEach(([key, value]) => {
+    if (!data[key] && value) {
+      data[key] = value;
+    }
+  });
+  const lowerNotes = notes.toLowerCase();
+  const concerns = [...narrativeResult.concerns];
+
+  const station = findOptionMatch(notes, stationOptions);
+  if (station && !data.station) {
+    data.station = station;
+  }
+
+  const watch = findOptionMatch(notes, watchOptions);
+  if (watch && !data.watch) {
+    data.watch = watch;
+  }
+
+  const incidentType = findOptionMatch(notes, incidentTypes);
+  if (incidentType && !data.incidentType) {
+    data.incidentType = incidentType;
+  }
+
+  const cause = findOptionMatch(notes, causeClassifications);
+  if (cause && !data.causeOfFire) {
+    data.causeOfFire = cause;
+  }
+
+  const wind = findOptionMatch(notes, windOptions);
+  if (wind && !data.wind) {
+    data.wind = wind;
+  }
+
+  if (!data.waterSupply) {
+    if (/\b(water supply|supply)\b.*\b(sufficient|yes)\b/i.test(notes)) {
+      data.waterSupply = "Yes";
+    } else if (/\b(water supply|supply)\b.*\b(insufficient|no)\b/i.test(notes)) {
+      data.waterSupply = "No";
+    }
+  }
+
+  const reportNumberMatch = notes.match(/\b(?:report\s*(?:number|no\.?)|no\.?)\s*[:#-]?\s*([A-Za-z0-9/-]+)/i);
+  if (reportNumberMatch && !data.reportNumber) {
+    data.reportNumber = reportNumberMatch[1];
+  }
+
+  const dateMatch = notes.match(/\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}-\d{2}-\d{2})\b/);
+  if (dateMatch && !data.dateCallReceived) {
+    if (!data.dateCallReceived) {
+      data.dateCallReceived = dateMatch[1];
+    }
+    if (!data.dateOfFire) {
+      data.dateOfFire = dateMatch[1];
+    }
+  }
+
+  const timeMatch = notes.match(/\b(\d{1,2}:\d{2}\s*(?:hrs?|am|pm)?|\d{3,4}\s*hrs?)\b/i);
+  if (timeMatch && !data.timeCallReceived) {
+    data.timeCallReceived = timeMatch[1];
+  }
+
+  const unusedText = lines
+    .filter((line, index) => !usedLines.has(index))
+    .filter((line) => !stationOptions.some((stationOption) => line.includes(stationOption)))
+    .join(" ");
+
+  if (unusedText) {
+    const sortedNarrative = sortUnlabelledNarrativeIntoFields(unusedText, data);
+    const sortedFields = Object.keys(sortedNarrative);
+    if (sortedFields.length) {
+      concerns.push(`Unlabelled narrative text was sorted into: ${sortedFields.join(", ")}. Review all populated fields.`);
+    } else {
+      concerns.push("Unlabelled text was placed in Additional Information for officer review.");
+    }
+  }
+
+  if (lowerNotes.includes("witness") || lowerNotes.includes("stated") || lowerNotes.includes("informed")) {
+    concerns.push("Witness statements or received information detected; review Additional Information.");
+  }
+
+  mandatoryFields.forEach((field) => {
+    if (!data[field.name]) {
+      concerns.push(`Could not identify: ${field.label}.`);
+    }
+  });
+
+  return {
+    data: applyStructuredFieldCleanup(data),
+    concerns: [...new Set(concerns)]
+  };
+}
+
+function FieldInput({ field, value, onChange }) {
+  const requiredText = field.mandatory ? "Required" : "Optional";
+
+  if (field.type === "select") {
+    return (
+      <label className={field.wide ? "wide" : undefined}>
+        <span>
+          {field.label} <em>{requiredText}</em>
+        </span>
+        <select name={field.name} value={value} onChange={onChange}>
+          <option value="">{`Select ${field.label.toLowerCase()}`}</option>
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  if (field.type === "textarea") {
+    return (
+      <label className={field.wide ? "wide" : undefined}>
+        <span>
+          {field.label} <em>{requiredText}</em>
+        </span>
+        <textarea name={field.name} value={value} onChange={onChange} rows={4} placeholder={field.help || ""} />
+      </label>
+    );
   }
 
   return (
-    <main className="app-shell">
+    <label className={field.wide ? "wide" : undefined}>
+      <span>
+        {field.label} <em>{requiredText}</em>
+      </span>
+      <input type={field.type} name={field.name} value={value} onChange={onChange} placeholder={field.help || ""} />
+    </label>
+  );
+}
+
+function TemplateField({ className, children, fieldKey, value }) {
+  const content = String(children || "").trim();
+  return (
+    <p className={`${className} ${fieldTextClass(fieldKey, value)}`}>{content}</p>
+  );
+}
+
+function TemplateMark({ className, active }) {
+  return <span className={`${className} template-mark`}>{active ? "X" : ""}</span>;
+}
+
+function splitForFields(value, lengths) {
+  const words = String(value || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  const lines = lengths.map(() => "");
+
+  words.forEach((word) => {
+    const index = lines.findIndex((line, lineIndex) => `${line} ${word}`.trim().length <= lengths[lineIndex]);
+    if (index >= 0) {
+      lines[index] = `${lines[index]} ${word}`.trim();
+    } else {
+      lines[lines.length - 1] = `${lines[lines.length - 1]} ${word}`.trim();
+    }
+  });
+
+  return lines;
+}
+
+function splitListForRows(value, count) {
+  const items = String(value || "")
+    .replace(/\s+\band\b\s+(?=#?\d{3,5}\s)/gi, ", ")
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return Array.from({ length: count }, (_, index) => items[index] || "");
+}
+
+function fitFontSize(value, baseSize = 9, thresholds = [24, 38, 54]) {
+  const length = String(value || "").length;
+  if (length > thresholds[2]) {
+    return Math.max(8.5, baseSize - 2.5);
+  }
+  if (length > thresholds[1]) {
+    return Math.max(9, baseSize - 1.75);
+  }
+  if (length > thresholds[0]) {
+    return Math.max(10, baseSize - 1);
+  }
+  return baseSize;
+}
+
+function setPdfText(form, name, value, fontSize = pdfFormFontSize, options = {}) {
+  const field = form.getTextField(name);
+  if (options.multiline) {
+    field.enableMultiline();
+  }
+  const targetFontSize = options.allowSmaller ? fontSize : Math.max(fontSize, pdfFormFontSize);
+  const actualFontSize = options.fit === false ? targetFontSize : fitFontSize(value, targetFontSize, options.thresholds);
+  const fontName = options.bold ? "Times-Bold" : "Times-Roman";
+  field.acroField.setDefaultAppearance(`/${fontName} ${actualFontSize} Tf 0 g`);
+  field.setText(String(value || ""));
+}
+
+function setPdfCheck(pdfForm, name, checked) {
+  const field = pdfForm.getCheckBox(name);
+  if (checked) {
+    field.check();
+  } else {
+    field.uncheck();
+  }
+}
+
+function extractCurrencyAfter(text, label) {
+  const match = String(text || "").match(new RegExp(`${label}[^$]*\\$?\\s*([0-9,]+(?:\\.\\d{2})?)`, "i"));
+  return match ? `$${match[1]}` : "";
+}
+
+function currencyValue(value, fallbackText, fallbackLabel) {
+  const direct = String(value || "").replace(/^\$/, "").trim();
+  if (direct) {
+    return direct;
+  }
+  return extractCurrencyAfter(fallbackText, fallbackLabel).replace(/^\$/, "");
+}
+
+function wrapPdfText(text, maxChars) {
+  const lines = [];
+  String(text || "")
+    .split("\n")
+    .forEach((paragraph) => {
+      const words = paragraph.trim().split(/\s+/).filter(Boolean);
+      let line = "";
+      words.forEach((word) => {
+        const nextLine = `${line} ${word}`.trim();
+        if (nextLine.length > maxChars && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = nextLine;
+        }
+      });
+      if (line) {
+        lines.push(line);
+      }
+    });
+  return lines;
+}
+
+function drawPdfLines(page, text, x, y, options = {}) {
+  const { font, size = 10, lineHeight = 13, maxChars = 92, maxLines = 50 } = options;
+  wrapPdfText(text, maxChars)
+    .slice(0, maxLines)
+    .forEach((line, index) => {
+      page.drawText(line, { x, y: y - index * lineHeight, size, font });
+    });
+}
+
+function drawAppendixFooter(page, font) {
+  page.drawText("Officer Signature: ______________________________", {
+    x: 54,
+    y: 92,
+    size: pdfAppendixFontSize,
+    font
+  });
+  page.drawText("Rank: ______________________________", { x: 348, y: 92, size: pdfAppendixFontSize, font });
+}
+
+function addAppendixPages(pdfDoc, formData, font, boldFont = font) {
+  const appendices = buildAppendices(formData);
+  appendices.forEach((appendix, index) => {
+    const page = pdfDoc.addPage([612, 792]);
+    const top = 742;
+    page.drawText(`APPENDIX ${index + 1}`, { x: 246, y: top, size: 14, font: boldFont });
+    page.drawText(`Fire Report Number: ${formData.reportNumber || "[Missing]"}`, {
+      x: 54,
+      y: top - 38,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Address of Fire: ${formData.actualAddress || formData.addressGiven || "[Missing]"}`, {
+      x: 54,
+      y: top - 56,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Date of Fire: ${formData.dateOfFire || formData.dateCallReceived || "[Missing]"}`, {
+      x: 54,
+      y: top - 74,
+      size: pdfAppendixFontSize,
+      font
+    });
+    page.drawText(`Date of Report: ${formData.dateOfReport || "[Missing]"}`, {
+      x: 330,
+      y: top - 74,
+      size: pdfAppendixFontSize,
+      font
+    });
+
+    page.drawText(`Sections Continued: ${appendix.sections.map((section) => section.section).join("; ")}`, {
+      x: 54,
+      y: top - 104,
+      size: 10,
+      font
+    });
+    page.drawLine({ start: { x: 54, y: top - 116 }, end: { x: 558, y: top - 116 }, thickness: 1, color: rgb(0, 0, 0) });
+
+    let y = top - 142;
+    appendix.sections.forEach((section) => {
+      page.drawText(section.section, { x: 54, y, size: pdfAppendixFontSize, font: boldFont });
+      y -= 18;
+      section.text.split("\n").forEach((line) => {
+        page.drawText(line, { x: 54, y, size: pdfAppendixFontSize, font });
+        y -= 15;
+      });
+      y -= 8;
+    });
+
+    drawAppendixFooter(page, font);
+  });
+}
+
+function drawCorrectedOfficialHeadings(pdfDoc, font) {
+  const page = pdfDoc.getPages()[1];
+  if (!page) {
+    return;
+  }
+
+  page.drawRectangle({
+    x: 419,
+    y: 955,
+    width: 42,
+    height: 15,
+    color: rgb(1, 1, 1),
+    borderColor: rgb(1, 1, 1),
+    borderWidth: 0
+  });
+  page.drawText("FSSO", { x: 426, y: 958, size: 10, font });
+}
+
+async function createFilledOfficialPdf(formData) {
+  const existingPdfBytes = await fetch("/templates/ttfs-fire-report-form.pdf").then((response) => response.arrayBuffer());
+  const pdfDoc = await PDFDocument.load(existingPdfBytes);
+  pdfDoc.registerFontkit(fontkit);
+  const pdfForm = pdfDoc.getForm();
+  const formFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+  const formBoldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  drawCorrectedOfficialHeadings(pdfDoc, formBoldFont);
+
+  const addressGiven = splitForFields(formData.addressGiven, [30, 44, 44]);
+  const actualAddress = splitForFields(formData.actualAddress, [26, 44, 44]);
+  const owner = splitForFields(truncateForForm("ownerOccupier", formData.ownerOccupier), [24, 34, 34]);
+  const hydrant = splitForFields(formData.hydrantDistance, [36]);
+  const cause = splitForFields(formData.causeOfFire, [36, 36]);
+  const distance = splitForFields(formData.approxDistanceToFire, [24, 42]);
+  const appliances = splitListForRows(formData.appliancesAttending, 5);
+  const officers = splitListForRows(formData.officersAttending, 5);
+  const seniorOfficers = splitListForRows(formData.seniorOfficersAttending, 5);
+  const personnelLines = splitForFields(formData.personnelAttendingDetails, [82, 82]);
+  const insurance = splitForFields(formData.insuranceDetails || formData.valuesDamageInsurance, [90, 90, 90]);
+  const casualtyRows = getCasualtyRows(formData);
+
+  setPdfText(pdfForm, "No", formData.reportNumber, 9);
+  setPdfText(pdfForm, "Text7", formData.incidentType, 12, { fit: false });
+  setPdfText(pdfForm, "Fire Station", formData.station, 12, { fit: false, bold: true });
+  setPdfText(pdfForm, "Date Call Received", formData.dateCallReceived, 9);
+  setPdfText(pdfForm, "Time Call Received", formData.timeCallReceived, 9);
+  setPdfText(pdfForm, "How Call Received", formData.howCallReceived, 8.5);
+  setPdfText(pdfForm, "Address Given 1", addressGiven[0], 8.4);
+  setPdfText(pdfForm, "Address Given 2", addressGiven[1], 8.4);
+  setPdfText(pdfForm, "Address Given 3", addressGiven[2], 8.4);
+  setPdfText(pdfForm, "Actual Address of Fire 1", actualAddress[0], 8.4);
+  setPdfText(pdfForm, "Actual Address of Fire 2", actualAddress[1], 8.4);
+  setPdfText(pdfForm, "Actual Address of Fire 3", actualAddress[2], 8.4);
+  setPdfText(pdfForm, "Time Appliance Left Station", formData.timeApplianceLeftStation, 9);
+  setPdfText(pdfForm, "Approx Distance to Fire 1", distance[0], 8.4);
+  setPdfText(pdfForm, "Approx Distance to Fire 2", distance[1], 8.4);
+  setPdfText(pdfForm, "Owners Name", owner[0], 8.4);
+  setPdfText(pdfForm, "undefined", owner[1], 8.4);
+  setPdfText(pdfForm, "undefined_2", owner[2], 8.4);
+  setPdfText(pdfForm, "Distance of nearest Hydrant to Fire", hydrant[0], 8.4);
+  setPdfText(pdfForm, "Cause of Fire 1", cause[0], 8.4);
+  setPdfText(pdfForm, "Cause of Fire 2", cause[1], 8.4);
+  setPdfCheck(pdfForm, "Check Box1", formData.waterSupply === "Yes");
+  setPdfCheck(pdfForm, "Check Box2", formData.waterSupply === "No");
+  setPdfText(pdfForm, "LPM Available", formData.lpmAvailable, 9);
+  setPdfText(pdfForm, "LPM Required", formData.lpmRequired, 9);
+  setPdfText(pdfForm, "Text4", truncateForForm("typeOfProperty", formData.typeOfProperty), 7.4, { multiline: true });
+  setPdfText(pdfForm, "Text5", truncateForForm("howFireExtinguished", formData.howFireExtinguished), 7.4, { multiline: true });
+  setPdfText(pdfForm, "Text6", truncateForForm("descriptionOfDamage", formData.descriptionOfDamage), 7.4, { multiline: true });
+
+  for (let index = 0; index < 5; index += 1) {
+    setPdfText(pdfForm, `Appliances AttendingRow${index + 1}`, appliances[index], 8);
+    setPdfText(pdfForm, `Officers AttendingRow${index + 1}`, officers[index], 8);
+    setPdfText(pdfForm, `FSSO  FSOs AttendingRow${index + 1}`, seniorOfficers[index], 8);
+  }
+
+  setPdfText(pdfForm, "Number of Men Attending 1", personnelLines[0], 8);
+  setPdfText(pdfForm, "Number of Men Attending 2", personnelLines[1], 8);
+  setPdfText(pdfForm, "Text1", formData.professionalsAttending, 9, { fit: false });
+  setPdfText(pdfForm, "Text2", formData.auxiliaryAttending, 9, { fit: false });
+  setPdfText(pdfForm, "Date", formData.dateOfReport, 9);
+  setPdfText(pdfForm, "Rank", formData.rank, 9);
+  casualtyRows.forEach((row, index) => {
+    setPdfText(pdfForm, `NameRow${index + 1}`, row.name, 7.8);
+    setPdfText(pdfForm, `Brief description of injuriesRow${index + 1}`, row.injury, 7.8);
+    setPdfText(pdfForm, `Treated byRow${index + 1}`, row.treatedBy, 7.8);
+  });
+  setPdfText(pdfForm, "Value of Building", currencyValue(formData.valueBuilding, formData.valuesDamageInsurance, "Value of Building"));
+  setPdfText(pdfForm, "Value of Stock", currencyValue(formData.valueStock, formData.valuesDamageInsurance, "Value of Stock"));
+  setPdfText(pdfForm, "Damage to Building", currencyValue(formData.damageBuilding, formData.valuesDamageInsurance, "Damage to Building"));
+  setPdfText(pdfForm, "Damage to Stock", currencyValue(formData.damageStock, formData.valuesDamageInsurance, "Damage to Stock"));
+  setPdfText(pdfForm, "Building and Stock Insured as follows 1", insurance[0], 8);
+  setPdfText(pdfForm, "Building and Stock Insured as follows 2", insurance[1], 8);
+  setPdfText(pdfForm, "Building and Stock Insured as follows 3", insurance[2], 8);
+  setPdfText(pdfForm, "Text3", truncateForForm("officersObservations", formData.officersObservations), 7.4, { multiline: true });
+
+  pdfForm.updateFieldAppearances(formFont);
+  pdfForm.getTextField("Fire Station").updateAppearances(formBoldFont);
+  addAppendixPages(pdfDoc, formData, formFont, formBoldFont);
+
+  return pdfDoc.save();
+}
+
+export default function Home() {
+  const [form, setForm] = useState(initialForm);
+  const [activeTab, setActiveTab] = useState(tabs[0]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState("");
+  const [filledPdfUrl, setFilledPdfUrl] = useState("");
+  const [exportLoading, setExportLoading] = useState(false);
+  const [roughWritingNotes, setRoughWritingNotes] = useState("");
+  const [writingResult, setWritingResult] = useState(null);
+  const [writingMode, setWritingMode] = useState(writingModes[1]);
+  const [writingStatus, setWritingStatus] = useState("");
+  const [writingLoading, setWritingLoading] = useState(false);
+  const [fieldImproveStatus, setFieldImproveStatus] = useState("");
+  const [fieldImproveLoading, setFieldImproveLoading] = useState(false);
+  const [fieldImproveConcerns, setFieldImproveConcerns] = useState([]);
+  const [bulkNotes, setBulkNotes] = useState("");
+  const [bulkResult, setBulkResult] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const warnings = useMemo(() => buildValidationWarnings(form), [form]);
+  const categoryScores = useMemo(() => calculateCategoryScores(form, warnings), [form, warnings]);
+  const qualityScore = useMemo(() => calculateQualityScore(categoryScores), [categoryScores]);
+  const fireReport = useMemo(() => buildFireReport(form), [form]);
+  const improvedReport = useMemo(() => buildImprovedReport(form), [form]);
+  const causeAnalysis = useMemo(() => buildCauseAnalysis(form), [form]);
+  const appendices = useMemo(() => buildAppendices(form), [form]);
+  const recommendations = useMemo(() => buildRecommendations(form, warnings, categoryScores), [form, warnings, categoryScores]);
+  const promptSummary = useMemo(() => buildPromptSummary(form), [form]);
+
+  function updateField(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function handleImproveWriting() {
+    setWritingLoading(true);
+    setWritingStatus("Improving writing with the server-side AI assistant...");
+
+    try {
+      const response = await fetch("/api/improve-writing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: roughWritingNotes, mode: writingMode })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The AI Writing Assistant returned an unexpected server response." };
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI writing request failed.");
+      }
+
+      setWritingResult(result);
+      setWritingStatus("AI writing improvement complete.");
+    } catch (error) {
+      setWritingResult(improveWritingNotes(roughWritingNotes, writingMode));
+      setWritingStatus(formatAssistantError(error, "Local fallback"));
+    } finally {
+      setWritingLoading(false);
+    }
+  }
+
+  async function handleImproveAllFields() {
+    setFieldImproveLoading(true);
+    setFieldImproveStatus("Improving official form field wording with the server-side AI assistant...");
+    setFieldImproveConcerns([]);
+
+    try {
+      const response = await fetch("/api/improve-fields", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The form field AI assistant returned an unexpected server response." };
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI form field improvement failed.");
+      }
+
+      setForm((current) => ({ ...current, ...result.fields }));
+      setFieldImproveConcerns(result.concerns || []);
+      setFieldImproveStatus("Official form field wording improved. Review highlighted concerns before export.");
+    } catch (error) {
+      const fallback = improveFormFieldsLocally(form);
+      setForm((current) => ({ ...current, ...fallback.fields }));
+      setFieldImproveConcerns(fallback.concerns);
+      setFieldImproveStatus(formatAssistantError(error, "Local field cleanup"));
+    } finally {
+      setFieldImproveLoading(false);
+    }
+  }
+
+  async function handleAutoFillForm() {
+    setBulkLoading(true);
+
+    try {
+      const response = await fetch("/api/auto-fill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: bulkNotes })
+      });
+      const contentType = response.headers.get("content-type") || "";
+      const result = contentType.includes("application/json")
+        ? await response.json()
+        : { error: "The AI auto-fill assistant returned an unexpected server response." };
+
+      if (!response.ok) {
+        throw new Error(result.error || "AI auto-fill failed.");
+      }
+
+      const localResult = inferBulkData(bulkNotes);
+      const mergedData = applyStructuredFieldCleanup({ ...result.data, ...localResult.data });
+      setForm((current) => ({ ...current, ...mergedData }));
+      setBulkResult({
+        data: mergedData,
+        concerns: [
+          ...(result.concerns?.length ? result.concerns : ["AI auto-fill completed. Review all populated fields before export."]),
+          ...localResult.concerns.filter((concern) => !result.concerns?.includes(concern))
+        ]
+      });
+    } catch (error) {
+      const result = inferBulkData(bulkNotes);
+      setForm((current) => ({ ...current, ...result.data }));
+      setBulkResult({
+        data: result.data,
+        concerns: [formatAssistantError(error, "Local auto-fill parser"), ...result.concerns]
+      });
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
+  async function buildFilledPdfUrl() {
+    try {
+      if (filledPdfUrl) {
+        URL.revokeObjectURL(filledPdfUrl);
+      }
+      const pdfBytes = await createFilledOfficialPdf(form);
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      setFilledPdfUrl(url);
+      return url;
+    } catch (error) {
+      setExportStatus(`PDF export failed: ${error.message}`);
+      return "";
+    }
+  }
+
+  async function openPdfPreview() {
+    setExportLoading(true);
+    setExportStatus("Creating actual filled TTFS PDF preview from the embedded form fields...");
+    try {
+      const url = await buildFilledPdfUrl();
+      if (!url) {
+        return;
+      }
+      setExportStatus("Actual filled TTFS PDF preview generated below. Use the download link below if your browser blocks automatic downloads.");
+      window.setTimeout(() => {
+        document.getElementById("filled-pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  async function downloadFilledPdf() {
+    setExportLoading(true);
+    setExportStatus("Creating filled official TTFS PDF from the embedded form fields...");
+    try {
+      const url = await buildFilledPdfUrl();
+      if (!url) {
+        return;
+      }
+      triggerPdfDownload(url);
+      setExportStatus("Completed official TTFS PDF generated. If your browser did not download it automatically, use the download link below.");
+    } catch (error) {
+      setExportStatus(`PDF export failed: ${error.message}`);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  function triggerPdfDownload(url = filledPdfUrl) {
+    if (!url) {
+      setExportStatus("No PDF is ready yet. Click Download Filled Official PDF first.");
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${form.reportNumber || "ttfs-fire-report"}-completed.pdf`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setExportStatus("Download requested. If no file appears, use Open Ready PDF and save it from the PDF viewer.");
+  }
+
+  function openReadyPdf() {
+    if (!filledPdfUrl) {
+      setExportStatus("No PDF is ready yet. Click Preview Actual Filled PDF or Download Filled Official PDF first.");
+      return;
+    }
+
+    const opened = window.open(filledPdfUrl, "_blank", "noopener,noreferrer");
+    if (!opened) {
+      setExportStatus("The browser blocked the new PDF tab. Use the PDF preview below or try the download button again.");
+      return;
+    }
+    setExportStatus("Ready PDF opened in a new tab. Use the PDF viewer download or print controls if needed.");
+  }
+
+  async function printPdf() {
+    setExportLoading(true);
+    setExportStatus("Preparing filled TTFS PDF for printing...");
+    try {
+      const url = await buildFilledPdfUrl();
+      if (!url) {
+        return;
+      }
+      setExportStatus("Filled TTFS PDF is ready below. Use the PDF viewer print button, or download it and print from your PDF app.");
+      window.setTimeout(() => {
+        document.getElementById("filled-pdf-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  return (
+    <main className={`app-shell ${previewOpen ? "previewing" : ""}`}>
       <section className="topbar">
         <div>
-          <p className="eyebrow">TTFS Field Intelligence</p>
-          <h1>Fire Investigation</h1>
-          <p className="topbar-copy">
-            Capture the scene, organize the evidence, and move from observations to origin, cause, and report.
-          </p>
+          <p className="eyebrow">Trinidad and Tobago Fire Service</p>
+          <h1>TTFS Report Assistant</h1>
         </div>
-        <div className="score-pill" aria-label={`Investigation progress ${progress} out of 100`}>
-          <span>{progress}</span>
-          <small>ready</small>
+        <div className="score-pill" aria-label={`Report quality score ${qualityScore} out of 100`}>
+          <span>{qualityScore}</span>
+          <small>/100</small>
         </div>
       </section>
 
-      <section className="user-strip" aria-label="Signed in user">
-        <div>
-          <strong>{authSession.name}</strong>
-          <span>{authSession.email}</span>
-        </div>
-        <button type="button" className="secondary-action" onClick={signOut}>
-          Sign Out
-        </button>
-      </section>
+      <nav className="tabs" aria-label="Report workflow">
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={activeTab === tab ? "active" : ""}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
 
-      <div className="workspace investigation-only-workspace">
-        <section className="panel input-panel" aria-labelledby="process-heading">
+      <div className="workspace">
+        <section className="panel input-panel" aria-labelledby="form-heading">
           <div className="section-heading">
-            <p className="eyebrow">Workflow</p>
-            <h2 id="process-heading">Current Stage</h2>
+            <p className="eyebrow">Official form fields</p>
+            <h2 id="form-heading">Fire Report Input Form</h2>
           </div>
 
-          <nav className="process-tabs" aria-label="Fire investigation process stages">
-            {investigationStages.map((stage) => (
-              <button
-                key={stage.id}
-                type="button"
-                className={activeStage.id === stage.id ? "active" : ""}
-                onClick={() => setActiveStageId(stage.id)}
-              >
-                <span>{stage.code}</span>
-                {stage.title}
-              </button>
-            ))}
-          </nav>
-
-          <div className="investigation-guide">
-            <StageCard
-              key={activeStage.id}
-              stage={activeStage}
-              data={investigation[activeStage.id]}
-              onChange={updateStage}
-              activeOperationId={activeOperationByStage[activeStage.id]}
-              setActiveOperationId={setActiveOperationId}
-              onOperationChange={updateOperationStep}
-              onOperationFileImport={importOperationFile}
-              intakeLoadingTarget={intakeLoadingTarget}
-              onReportChange={updateReportWriteup}
-              onBuildReportDraft={buildDraftReportFromInvestigation}
-              activeDataTrackId={activeDataTrackId}
-              setActiveDataTrackId={setActiveDataTrackId}
-              onDataTrackChange={updateDataTrack}
-              activeSceneStepId={activeSceneStepId}
-              setActiveSceneStepId={setActiveSceneStepId}
-              onSceneStepChange={updateSceneStep}
-              onAddSceneEntry={addSceneEntry}
-              onSetActiveSceneEntry={setActiveSceneEntry}
-              onScenePhotoAnalyze={analyzeSceneExaminationPhoto}
-              onPhotoAnalyze={analyzeDataCollectionPhoto}
-              photoLoadingTarget={photoLoadingTarget}
-            />
-          </div>
-        </section>
-
-        <section className="panel output-panel no-print" aria-labelledby="agent-heading">
-          <div className="output-header">
-            <div>
-              <p className="eyebrow">Assistant</p>
-              <h2 id="agent-heading">Case Intelligence</h2>
-            </div>
-            <strong>{progress}%</strong>
-          </div>
-
-          <article>
-            <h3>Case Readiness</h3>
-            <div className="meter" aria-hidden="true">
-              <span style={{ width: `${progress}%` }} />
-            </div>
-            <p>{progress}% of major stages are complete.</p>
-          </article>
-
-          <article className="assistant-actions">
-            <h3>Next Best Action</h3>
-            <div className="ai-action-panel">
-              <div>
-                <h4>AI uses the full case file</h4>
-                <p>
-                  Origin, cause, and report drafting use the information already captured in every stage.
-                </p>
-              </div>
-              <div className="ai-action-buttons">
-                <button type="button" className="secondary-action" onClick={analyzeOriginWithAgent} disabled={Boolean(aiActionLoading)}>
-                  {aiActionLoading === "origin" ? "Analyzing Origin..." : "Assist Origin Determination"}
-                </button>
-                <button type="button" className="secondary-action" onClick={analyzeCauseWithAgent} disabled={Boolean(aiActionLoading)}>
-                  {aiActionLoading === "cause" ? "Analyzing Cause..." : "Assist Cause Determination"}
-                </button>
-                <button type="button" onClick={draftReportWithAgent} disabled={Boolean(aiActionLoading)}>
-                  {aiActionLoading === "report" ? "Drafting Report..." : "Draft Investigation Report"}
-                </button>
-              </div>
-            </div>
-          </article>
-
-          <article>
-            <details>
-              <summary>Review Open Items</summary>
-              {openItems.length ? (
-                <ul>
-                  {openItems.slice(0, 18).map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>All stages are marked complete and documented.</p>
-              )}
-            </details>
-          </article>
-
-          <article>
-            <h3>Ask a Specific Question</h3>
-            <label className="writer-level">
+          <div className="bulk-intake">
+            <label>
               <span>
-                Stage focus <em>Optional</em>
-              </span>
-              <select value={agentStageFocus} onChange={(event) => setAgentStageFocus(event.target.value)}>
-                <option value="">General investigation question</option>
-                {investigationStages.map((stage) => (
-                  <option key={stage.id} value={`${stage.code} ${stage.title}`}>
-                    {stage.code} - {stage.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="writer-box">
-              <span>
-                Question <em>Current process notes included</em>
+                Dump collected data <em>Auto-sort</em>
               </span>
               <textarea
-                value={agentQuestion}
-                onChange={(event) => setAgentQuestion(event.target.value)}
-                rows={5}
-                placeholder="Ask about origin hypotheses, electrical analysis, propane behaviour, missing scene data, evidence handling, witness follow-up, or next investigative steps."
+                value={bulkNotes}
+                onChange={(event) => setBulkNotes(event.target.value)}
+                rows={8}
+                placeholder="Paste all collected notes here. The AI will sort facts into the official TTFS fields and flag anything missing or uncertain."
               />
             </label>
-            <button type="button" onClick={askAgent} disabled={agentLoading || !agentQuestion.trim()}>
-              {agentLoading ? "Consulting Agent..." : "Ask Fire Investigation Agent"}
+            <button type="button" onClick={handleAutoFillForm} disabled={bulkLoading}>
+              {bulkLoading ? "Sorting Data..." : "AI Auto-fill Form"}
             </button>
-            {agentStatus ? <p className="export-status">{agentStatus}</p> : null}
-          </article>
-
-          {agentResult ? (
-            <article>
-              <h3>Agent Guidance</h3>
-              <p>{agentResult.stageFocus || "General investigation question"}</p>
-              <pre>{agentResult.answer}</pre>
-              <div className="agent-result-grid">
-                <div>
-                  <h4>Concerns</h4>
-                  {agentResult.concerns?.length ? (
-                    <ul>
-                      {agentResult.concerns.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>No concerns returned.</p>
-                  )}
-                </div>
-                <div>
-                  <h4>Missing Information</h4>
-                  {agentResult.missingInformation?.length ? (
-                    <ul>
-                      {agentResult.missingInformation.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>No missing information returned.</p>
-                  )}
-                </div>
+            {bulkResult ? (
+              <div className="bulk-result">
+                <strong>{Object.keys(bulkResult.data).length} field(s) filled.</strong>
+                <ul>
+                  {bulkResult.concerns.slice(0, 8).map((concern) => (
+                    <li key={concern}>{concern}</li>
+                  ))}
+                </ul>
               </div>
-              {agentResult.suggestedUpdates?.length ? (
-                <>
-                  <h4>Suggested Updates</h4>
+            ) : null}
+          </div>
+
+          <div className="quick-selects" aria-label="Watch and incident type selections">
+            {quickSelectFields.map((field) => (
+              <FieldInput key={field.name} field={field} value={form[field.name]} onChange={updateField} />
+            ))}
+          </div>
+
+          <div className="form-grid">
+            {reportFormFields.map((field) => (
+              <FieldInput key={field.name} field={field} value={form[field.name]} onChange={updateField} />
+            ))}
+          </div>
+
+          <section className="official-subsection" aria-label="Casualty table">
+            <div className="subsection-title">
+              <h3>Casualties</h3>
+              <p>Name, brief description of injuries, and treated by are filled into the official casualty table.</p>
+            </div>
+            <div className="casualty-table">
+              <span>Name</span>
+              <span>Brief description of injuries</span>
+              <span>Treated by</span>
+              {Array.from({ length: 6 }, (_, index) => {
+                const row = index + 1;
+                return (
+                  <Fragment key={row}>
+                    <input
+                      aria-label={`Casualty ${row} name`}
+                      name={`casualtyName${row}`}
+                      value={form[`casualtyName${row}`]}
+                      onChange={updateField}
+                    />
+                    <input
+                      aria-label={`Casualty ${row} brief description of injuries`}
+                      name={`casualtyInjury${row}`}
+                      value={form[`casualtyInjury${row}`]}
+                      onChange={updateField}
+                    />
+                    <input
+                      aria-label={`Casualty ${row} treated by`}
+                      name={`casualtyTreatedBy${row}`}
+                      value={form[`casualtyTreatedBy${row}`]}
+                      onChange={updateField}
+                    />
+                  </Fragment>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="official-subsection" aria-label="Values damage and insurance fields">
+            <div className="subsection-title">
+              <h3>Values, Damage, and Insurance</h3>
+              <p>Enter figures only for the four value/damage fields. Insurance information is separate.</p>
+            </div>
+            <div className="value-grid">
+              {["valueBuilding", "valueStock", "damageBuilding", "damageStock"].map((name) => {
+                const field = formFields.find((item) => item.name === name);
+                return <FieldInput key={name} field={field} value={form[name]} onChange={updateField} />;
+              })}
+              <FieldInput
+                field={formFields.find((item) => item.name === "insuranceDetails")}
+                value={form.insuranceDetails}
+                onChange={updateField}
+              />
+            </div>
+          </section>
+        </section>
+
+        <section className="panel output-panel no-print" aria-labelledby="output-heading">
+          <div className="output-header">
+            <div>
+              <p className="eyebrow">{activeTab}</p>
+              <h2 id="output-heading">Report Workspace</h2>
+            </div>
+            <strong>{qualityScore}/100</strong>
+          </div>
+
+          {activeTab === "Generate Report" && (
+            <>
+              <article>
+                <h3>Fire Report</h3>
+                <pre>{fireReport}</pre>
+              </article>
+              <article>
+                <h3>Officer's Observations</h3>
+                <p>{form.officersObservations.trim() || "Missing: enter only observations from arrival to departure."}</p>
+              </article>
+              <article>
+                <h3>Additional Information</h3>
+                <p>
+                  {form.additionalInformation.trim() ||
+                    "Not provided: witness statements, received information, and pre-arrival actions belong here."}
+                </p>
+              </article>
+              <article>
+                <h3>Cause Analysis</h3>
+                <p>{causeAnalysis}</p>
+              </article>
+              <article>
+                <h3>TTFS Prompts</h3>
+                {form.incidentType ? (
                   <ul>
-                    {agentResult.suggestedUpdates.map((item) => (
-                      <li key={item}>{item}</li>
+                    {incidentPrompts[form.incidentType].map((prompt) => (
+                      <li key={prompt}>{prompt}</li>
                     ))}
                   </ul>
+                ) : (
+                  <p>Select an incident type to show intelligent TTFS prompts.</p>
+                )}
+              </article>
+            </>
+          )}
+
+          {activeTab === "Vet Report" && (
+            <>
+              <article>
+                <h3>Validation Warnings</h3>
+                {warnings.length ? (
+                  <ul>
+                    {warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No validation warnings detected.</p>
+                )}
+              </article>
+              <article>
+                <h3>Category Score</h3>
+                <div className="meter" aria-hidden="true">
+                  <span style={{ width: `${qualityScore}%` }} />
+                </div>
+                <p>{qualityScore}/100 based on category scoring.</p>
+                <div className="score-grid">
+                  {Object.entries(categoryScores).map(([category, score]) => (
+                    <div key={category}>
+                      <span>{category}</span>
+                      <strong>{score}</strong>
+                    </div>
+                  ))}
+                </div>
+              </article>
+              <article>
+                <h3>Recommendations</h3>
+                <ul>
+                  {recommendations.map((recommendation) => (
+                    <li key={recommendation}>{recommendation}</li>
+                  ))}
+                </ul>
+              </article>
+            </>
+          )}
+
+          {activeTab === "Improve Report" && (
+            <>
+              <article>
+                <h3>AI Writing Improvement</h3>
+                <label className="writer-level">
+                  <span>
+                    Writing mode <em>Required</em>
+                  </span>
+                  <select value={writingMode} onChange={(event) => setWritingMode(event.target.value)}>
+                    {writingModes.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {mode}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="writer-box">
+                  <span>
+                    Rough notes or weak wording <em>Fact-preserving</em>
+                  </span>
+                  <textarea
+                    value={roughWritingNotes}
+                    onChange={(event) => setRoughWritingNotes(event.target.value)}
+                    rows={8}
+                    placeholder="Paste rough notes, weak sentences, or incomplete wording here. The assistant will improve wording without changing facts."
+                  />
+                </label>
+                <button type="button" onClick={handleImproveWriting} disabled={writingLoading}>
+                  {writingLoading ? "Improving..." : "Improve Writing"}
+                </button>
+                {writingStatus ? <p className="export-status">{writingStatus}</p> : null}
+              </article>
+              {writingResult ? (
+                <>
+                  <article>
+                    <h3>Original Text</h3>
+                    <pre>{writingResult.originalText}</pre>
+                  </article>
+                  <article>
+                    <h3>Improved Text</h3>
+                    <pre>{writingResult.improvedText}</pre>
+                  </article>
+                  <article>
+                    <h3>Missing Information</h3>
+                    <ul>
+                      {writingResult.concerns.map((concern) => (
+                        <li key={concern}>{concern}</li>
+                      ))}
+                    </ul>
+                  </article>
+                  <article>
+                    <h3>Quality Score</h3>
+                    <div className="meter" aria-hidden="true">
+                      <span style={{ width: `${writingResult.qualityScore}%` }} />
+                    </div>
+                    <p>{writingResult.qualityScore}/100</p>
+                  </article>
+                  <article>
+                    <h3>Fire Prevention Readiness Score</h3>
+                    <div className="meter" aria-hidden="true">
+                      <span style={{ width: `${writingResult.firePreventionReadinessScore}%` }} />
+                    </div>
+                    <p>{writingResult.firePreventionReadinessScore}/100</p>
+                  </article>
                 </>
               ) : null}
-            </article>
-          ) : null}
+              <article>
+                <h3>Improve Official Form Fields</h3>
+                <p>
+                  Cleans up wording already entered in the official form fields, preserves facts and service numbers,
+                  and keeps missing information visible for officer review.
+                </p>
+                <button type="button" onClick={handleImproveAllFields} disabled={fieldImproveLoading}>
+                  {fieldImproveLoading ? "Improving Fields..." : "Improve All Form Fields"}
+                </button>
+                {fieldImproveStatus ? <p className="export-status">{fieldImproveStatus}</p> : null}
+                {fieldImproveConcerns.length ? (
+                  <ul>
+                    {fieldImproveConcerns.map((concern) => (
+                      <li key={concern}>{concern}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+              <article>
+                <h3>Improved Report Draft</h3>
+                <pre>{improvedReport}</pre>
+              </article>
+              <article>
+                <h3>Improvement Notes</h3>
+                <p>
+                  The draft is organized into official report categories without inventing facts. Missing or uncertain
+                  information remains visible for officer review.
+                </p>
+                <p>{promptSummary}</p>
+              </article>
+              <article>
+                <h3>Recommendations</h3>
+                <ul>
+                  {recommendations.map((recommendation) => (
+                    <li key={recommendation}>{recommendation}</li>
+                  ))}
+                </ul>
+              </article>
+            </>
+          )}
 
-          <article>
-            <h3>Process Summary</h3>
-            <pre>{summary}</pre>
-          </article>
+          {activeTab === "Export PDF" && (
+            <>
+              <article>
+                <h3>Official PDF Export</h3>
+                <p>
+                  The export uses the immutable fillable TTFS form template at <code>{officialTemplatePath}</code>.
+                  Generated content is written into the PDF&apos;s own embedded fields, not visually overlaid on top of
+                  the form. Overflow continues on appendix pages.
+                </p>
+                <div className="export-actions">
+                  <button type="button" onClick={downloadFilledPdf} disabled={exportLoading}>
+                    {exportLoading ? "Preparing PDF..." : "Download Filled Official PDF"}
+                  </button>
+                  <button type="button" onClick={openPdfPreview} disabled={exportLoading}>
+                    {exportLoading ? "Preparing Preview..." : "Preview Actual Filled PDF"}
+                  </button>
+                  <button type="button" className="secondary-action" onClick={printPdf} disabled={exportLoading}>
+                    {exportLoading ? "Preparing Print View..." : "Print / Save Filled PDF"}
+                  </button>
+                </div>
+                {exportStatus ? <p className="export-status">{exportStatus}</p> : null}
+                {filledPdfUrl ? (
+                  <div id="filled-pdf-preview" className="filled-pdf-preview">
+                    <div className="ready-pdf-actions" aria-label="Ready PDF actions">
+                      <button type="button" onClick={() => triggerPdfDownload()}>
+                        Download ready PDF
+                      </button>
+                      <button type="button" className="secondary-action" onClick={openReadyPdf}>
+                        Open Ready PDF
+                      </button>
+                    </div>
+                    <iframe title="Actual filled TTFS PDF preview" src={filledPdfUrl} />
+                  </div>
+                ) : null}
+              </article>
+              <article>
+                <h3>Appendix Pages</h3>
+                <p>{appendices.length ? `${appendices.length} appendix page(s) will be appended.` : "No appendix pages needed."}</p>
+                {appendices.length ? (
+                  <ul>
+                    {appendices.map((appendix, index) => (
+                      <li key={`appendix-summary-${index}`}>
+                        {`Appendix ${index + 1}: ${appendix.sections.map((section) => section.section).join("; ")}`}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+              <article>
+                <h3>Export Readiness</h3>
+                {warnings.length ? (
+                  <ul>
+                    {warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Ready to export.</p>
+                )}
+              </article>
+              <article>
+                <h3>Submission Package</h3>
+                <p>
+                  PDF output contains the completed TTFS report form followed by Appendix pages as required for Fire
+                  Prevention submission.
+                </p>
+              </article>
+            </>
+          )}
         </section>
       </div>
+
+      <section id="pdf-preview" className="print-export" aria-label="Printable TTFS Fire Report">
+        <div className="template-page template-page-one">
+          <TemplateField className="tf-report-number" fieldKey="reportNumber" value={form.reportNumber}>
+            {form.reportNumber}
+          </TemplateField>
+          <TemplateField className="tf-station" fieldKey="station" value={form.station}>
+            {form.station}
+          </TemplateField>
+          <TemplateMark className="tf-wind-strong" active={form.wind === "Strong"} />
+          <TemplateMark className="tf-wind-average" active={form.wind === "Average"} />
+          <TemplateMark className="tf-wind-none" active={form.wind === "None"} />
+          <TemplateField className="tf-date-call" fieldKey="dateCallReceived" value={form.dateCallReceived}>
+            {form.dateCallReceived}
+          </TemplateField>
+          <TemplateField className="tf-time-call" fieldKey="timeCallReceived" value={form.timeCallReceived}>
+            {form.timeCallReceived}
+          </TemplateField>
+          <TemplateField className="tf-how-call" fieldKey="howCallReceived" value={form.howCallReceived}>
+            {form.howCallReceived}
+          </TemplateField>
+          <TemplateField className="tf-address-given" fieldKey="addressGiven" value={form.addressGiven}>
+            {form.addressGiven}
+          </TemplateField>
+          <TemplateField className="tf-actual-address" fieldKey="actualAddress" value={form.actualAddress}>
+            {form.actualAddress}
+          </TemplateField>
+          <TemplateField
+            className="tf-left-station"
+            fieldKey="timeApplianceLeftStation"
+            value={form.timeApplianceLeftStation}
+          >
+            {form.timeApplianceLeftStation}
+          </TemplateField>
+          <TemplateField className="tf-distance-fire" fieldKey="approxDistanceToFire" value={form.approxDistanceToFire}>
+            {form.approxDistanceToFire}
+          </TemplateField>
+          <TemplateField className="tf-owner" fieldKey="ownerOccupier" value={form.ownerOccupier}>
+            {truncateForForm("ownerOccupier", form.ownerOccupier)}
+          </TemplateField>
+          <TemplateField className="tf-hydrant" fieldKey="hydrantDistance" value={form.hydrantDistance}>
+            {form.hydrantDistance}
+          </TemplateField>
+          <TemplateField className="tf-cause" fieldKey="causeOfFire" value={form.causeOfFire}>
+            {form.causeOfFire}
+          </TemplateField>
+          <TemplateMark className="tf-water-yes" active={form.waterSupply === "Yes"} />
+          <TemplateMark className="tf-water-no" active={form.waterSupply === "No"} />
+          <TemplateField className="tf-lpm-available" fieldKey="lpmAvailable" value={form.lpmAvailable}>
+            {form.lpmAvailable}
+          </TemplateField>
+          <TemplateField className="tf-lpm-required" fieldKey="lpmRequired" value={form.lpmRequired}>
+            {form.lpmRequired}
+          </TemplateField>
+          <TemplateField className="tf-type-property" fieldKey="typeOfProperty" value={form.typeOfProperty}>
+            {truncateForForm("typeOfProperty", form.typeOfProperty)}
+          </TemplateField>
+          <TemplateField
+            className="tf-extinguished"
+            fieldKey="howFireExtinguished"
+            value={form.howFireExtinguished}
+          >
+            {truncateForForm("howFireExtinguished", form.howFireExtinguished)}
+          </TemplateField>
+          <TemplateField className="tf-damage" fieldKey="descriptionOfDamage" value={form.descriptionOfDamage}>
+            {truncateForForm("descriptionOfDamage", form.descriptionOfDamage)}
+          </TemplateField>
+        </div>
+
+        <div className="template-page template-page-two">
+          <TemplateField className="tf-appliances" fieldKey="appliancesAttending" value={form.appliancesAttending}>
+            {truncateForForm("appliancesAttending", form.appliancesAttending)}
+          </TemplateField>
+          <TemplateField className="tf-officers" fieldKey="officersAttending" value={form.officersAttending}>
+            {truncateForForm("officersAttending", form.officersAttending)}
+          </TemplateField>
+          <TemplateField
+            className="tf-senior-officers"
+            fieldKey="seniorOfficersAttending"
+            value={form.seniorOfficersAttending}
+          >
+            {truncateForForm("seniorOfficersAttending", form.seniorOfficersAttending)}
+          </TemplateField>
+          <TemplateField
+            className="tf-professionals"
+            fieldKey="professionalsAttending"
+            value={form.professionalsAttending}
+          >
+            {form.professionalsAttending}
+          </TemplateField>
+          <TemplateField className="tf-auxiliary" fieldKey="auxiliaryAttending" value={form.auxiliaryAttending}>
+            {form.auxiliaryAttending}
+          </TemplateField>
+          <TemplateField className="tf-casualties" fieldKey="casualties" value={formatCasualties(form)}>
+            {formatCasualties(form)}
+          </TemplateField>
+          <TemplateField className="tf-report-date" fieldKey="dateOfReport" value={form.dateOfReport}>
+            {form.dateOfReport}
+          </TemplateField>
+          <TemplateField className="tf-signature-name" fieldKey="reportingOfficer" value={form.reportingOfficer}>
+            {form.reportingOfficer}
+          </TemplateField>
+          <TemplateField className="tf-rank" fieldKey="rank" value={form.rank}>
+            {form.rank}
+          </TemplateField>
+          <TemplateField
+            className="tf-values-insurance"
+            fieldKey="insuranceDetails"
+            value={formatValuesDamageInsurance(form)}
+          >
+            {truncateForForm("insuranceDetails", formatValuesDamageInsurance(form))}
+          </TemplateField>
+          <TemplateField
+            className="tf-observations"
+            fieldKey="officersObservations"
+            value={form.officersObservations}
+          >
+            {truncateForForm("officersObservations", form.officersObservations)}
+          </TemplateField>
+        </div>
+
+        {appendices.map((appendix, index) => (
+          <div className="appendix-page" key={`${appendix.section}-${index}`}>
+            <h2>{`APPENDIX ${index + 1}`}</h2>
+            <div className="appendix-meta">
+              <p>{compactLine("Fire Report Number", form.reportNumber)}</p>
+              <p>{compactLine("Address of Fire", form.actualAddress || form.addressGiven)}</p>
+              <p>{compactLine("Date of Fire", form.dateOfFire || form.dateCallReceived)}</p>
+              <p>{compactLine("Date of Report", form.dateOfReport)}</p>
+              <p>{compactLine("Sections Continued", appendix.sections.map((section) => section.section).join("; "))}</p>
+            </div>
+            <div className="appendix-text">
+              {appendix.sections.map((section, sectionIndex) => (
+                <section key={`${section.section}-${sectionIndex}`}>
+                  <h3>{section.section}</h3>
+                  <p>{section.text}</p>
+                </section>
+              ))}
+            </div>
+            <div className="appendix-signatures">
+              <span>Officer Signature Line: ______________________________</span>
+              <span>Rank Line: ______________________________</span>
+            </div>
+          </div>
+        ))}
+      </section>
     </main>
   );
 }

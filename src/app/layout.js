@@ -1,21 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: {
-    default: "Fire Investigation Process Guide",
-    template: "%s | Fire Investigation Process Guide"
-  },
-  description: "Mobile-friendly guided workflow for fire investigation process management.",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/photo-log-icon.svg",
-    apple: "/photo-log-icon.svg"
-  },
-  appleWebApp: {
-    capable: true,
-    title: "Fire Investigation",
-    statusBarStyle: "default"
-  }
+  title: "TTFS Report Assistant",
+  description: "Mobile-friendly assistant for drafting and vetting TTFS fire reports"
 };
 
 export default function RootLayout({ children }) {
