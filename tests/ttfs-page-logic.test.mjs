@@ -23,6 +23,7 @@ export {
   calculateCategoryScores,
   calculateQualityScore,
   causeClassifications,
+  fieldTextClass,
   formFields,
   formatAssistantError,
   howCallReceivedOptions,
@@ -293,6 +294,15 @@ test("long owner occupier and report fields are combined into professional appen
   assert.ok(continuedSections.includes("Owner/Occupier Continued"));
   assert.ok(continuedSections.includes("Type of property Continued"));
   assert.ok(appendices.some((appendix) => appendix.sections.length > 1));
+});
+
+test("owner occupier preview does not shrink to unreadable tight text", () => {
+  const className = logic.fieldTextClass(
+    "ownerOccupier",
+    "Owner: Phoenix Holdings Limited. Occupiers: Alpha Pharmacy Limited, O'Meara Food Mart Limited, Steven Baptiste, and Caribbean Electrical Services Limited."
+  );
+
+  assert.equal(className, "field-text shrink");
 });
 
 test("local field cleanup preserves service numbers and names", () => {

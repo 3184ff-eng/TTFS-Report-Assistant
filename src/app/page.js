@@ -535,6 +535,10 @@ function fieldTextClass(key, value) {
   const length = String(value || "").length;
   const limit = appendixLimits[key] || 120;
 
+  if (key === "ownerOccupier") {
+    return length > limit * 0.6 ? "field-text shrink" : "field-text";
+  }
+
   if (length > limit * 0.85) {
     return "field-text shrink-tight";
   }
@@ -1553,7 +1557,7 @@ function FieldInput({ field, value, onChange }) {
 function TemplateField({ className, children, fieldKey, value }) {
   const content = String(children || "").trim();
   return (
-    <p className={`${className} ${fieldTextClass(fieldKey, value)}`}>{content}</p>
+    <p className={`${className} ${fieldTextClass(fieldKey, content || value)}`}>{content}</p>
   );
 }
 
