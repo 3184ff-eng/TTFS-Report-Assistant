@@ -50,6 +50,23 @@ Reviewed against screenshots of chanel.com supplied by the client:
 Serif display type is retained throughout: Chanel sets everything in a
 grotesque sans, but the brief specifies elegant serif headlines for this House.
 
+**Matched to the Louis Vuitton reference pages**
+
+Reviewed against screenshots of eu.louisvuitton.com supplied by the client:
+- A "Need assistance" service band with bordered cells sits above the Concierge
+  section, mirroring their "NEED HELP / Contact Us / FAQ / Care Service" band.
+- Client services are presented as a bordered icon-tile grid, after their
+  "THEMES" grid. Each tile opens the enquiry form with that subject already
+  selected, so the tiles are working actions rather than decoration.
+- Client-service access is kept prominent in the header, as their "Call Us" is.
+
+Not carried over: LV hide their navigation behind a hamburger on desktop
+because they have hundreds of categories. This House has seven sections, so the
+horizontal navigation stays — it satisfies the brief's "clean and unobtrusive"
+requirement with fewer clicks. Their sentence-case menu was also left aside in
+favour of Chanel's uppercase labels, which match the brief's specification for
+uppercase collection and product labels.
+
 **Navigation and structure**
 - All seven House sections are now visible in the desktop navigation. The
   previous build hid items five to seven (`House Philosophy`, `The Designer’s

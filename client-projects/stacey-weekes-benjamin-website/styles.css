@@ -886,17 +886,6 @@ h1, h2, h3 { font-weight: 400; }
   line-height: 1.8;
   color: #e6e5db;
 }
-.service-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 14px;
-  color: #e6e5db;
-}
-.service-list li {
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
-}
 
 .enquiry {
   padding: clamp(30px, 3.4vw, 50px);
@@ -960,6 +949,78 @@ h1, h2, h3 { font-weight: 400; }
 
 .enquiry .btn { width: 100%; margin-top: 6px; }
 .enquiry-note { margin: 18px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--grey); }
+
+
+/* ----------------------------------------------- Client service band ---- */
+/* Louis Vuitton place a "NEED HELP" band with bordered service cells at the
+   head of their client-service pages; this is the same device. */
+
+.service-band {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--ivory);
+}
+.service-band-label {
+  align-self: center;
+  margin: 0;
+  padding: 0 var(--pad);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.service-band-links { display: flex; }
+.service-band-links a {
+  display: flex;
+  align-items: center;
+  padding: 30px clamp(20px, 3vw, 48px);
+  border-left: 1px solid var(--line);
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.3s var(--ease), color 0.3s var(--ease);
+}
+.service-band-links a:hover { background: var(--black); color: var(--ivory); }
+
+/* ------------------------------------------------- Client service tiles -- */
+/* Modelled on the bordered "THEMES" tile grid on louisvuitton.com. */
+
+.service-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+.service-tile {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 26px 14px 22px;
+  border: 0;
+  background: var(--olive);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.3s var(--ease);
+}
+.service-tile:hover { background: #3a4034; }
+.service-tile svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: square;
+}
+.service-tile span {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: #e6e5db;
+}
 
 /* --------------------------------------------------- Product detail ----- */
 
@@ -1169,6 +1230,11 @@ h1, h2, h3 { font-weight: 400; }
   .portrait { max-width: 440px; }
   .concierge-head,
   .concierge-body { grid-template-columns: 1fr; }
+  .service-band { grid-template-columns: 1fr; }
+  .service-band-label { padding: 22px var(--pad) 0; font-size: 11px; }
+  .service-band-links { flex-direction: column; }
+  .service-band-links a { padding: 18px var(--pad); border-left: 0; border-top: 1px solid var(--line); }
+  .service-band-links a:first-child { margin-top: 18px; }
   .footer-top { grid-template-columns: 1fr; }
   .footer-cols { grid-template-columns: 1fr; gap: 0; }
   .footer-col { border-top: 1px solid #2c2c2c; }

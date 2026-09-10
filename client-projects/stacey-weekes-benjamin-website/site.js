@@ -210,6 +210,24 @@
     });
   }
 
+  function focusEnquiry(subject) {
+    if (subject) {
+      Array.prototype.forEach.call(subjectField.options, function (option) {
+        if (option.value === subject || option.textContent === subject) subjectField.value = option.value;
+      });
+    }
+    form.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    window.setTimeout(function () { document.getElementById('enq-name').focus(); }, reduceMotion ? 0 : 600);
+  }
+
+  document.querySelectorAll('[data-subject]').forEach(function (control) {
+    control.addEventListener('click', function (event) {
+      if (control.tagName === 'A') event.preventDefault();
+      activeRef = '';
+      focusEnquiry(control.dataset.subject);
+    });
+  });
+
   pdpEnquire.addEventListener('click', function () {
     prefillEnquiry();
     closeDetail();
