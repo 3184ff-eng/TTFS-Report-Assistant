@@ -67,6 +67,22 @@ requirement with fewer clicks. Their sentence-case menu was also left aside in
 favour of Chanel's uppercase labels, which match the brief's specification for
 uppercase collection and product labels.
 
+**Editorial craft pass**
+
+- The announcement bar rotates the House's three brand statements, as Louis
+  Vuitton rotate their campaign lines. It pauses on hover and on keyboard focus,
+  settles after three passes rather than cycling forever, and stays static under
+  reduced-motion.
+- The collection statement occupies the first two cells of the product grid and
+  an enquiry card closes it, after Louis Vuitton's practice of setting editorial
+  and actions inside the grid rather than only around it.
+- Every card carries a status eyebrow — "Limited run" on the collection, "One of
+  one" on OOO-AṢA — mirroring their "New this season" tag. Both phrases are
+  stated as fact in the brief.
+- Campaign, atelier, Riviera, philosophy and portrait images settle from a
+  slight scale as they enter the viewport, and the opening campaign drifts
+  slowly over half a minute. All of it stops under reduced-motion.
+
 **Navigation and structure**
 - All seven House sections are now visible in the desktop navigation. The
   previous build hid items five to seven (`House Philosophy`, `The Designer’s

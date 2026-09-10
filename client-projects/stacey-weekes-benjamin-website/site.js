@@ -327,6 +327,49 @@
   syncFooter();
   if (compactFooter.addEventListener) compactFooter.addEventListener('change', syncFooter);
 
+
+  /* ---------------------------------------- Rotating House statements -- */
+
+  var rotator = document.querySelector('.rotator');
+  if (rotator && !reduceMotion) {
+    var statements = rotator.querySelectorAll('span');
+    var current = 0;
+    var passes = 0;
+    var paused = false;
+    var bar = document.getElementById('announcement');
+
+    bar.addEventListener('mouseenter', function () { paused = true; });
+    bar.addEventListener('mouseleave', function () { paused = false; });
+    bar.addEventListener('focusin', function () { paused = true; });
+    bar.addEventListener('focusout', function () { paused = false; });
+
+    var rotation = window.setInterval(function () {
+      if (paused) return;
+      statements[current].classList.remove('is-current');
+      current = (current + 1) % statements.length;
+      statements[current].classList.add('is-current');
+      if (current === 0) passes += 1;
+      // Settle after three passes rather than cycling indefinitely.
+      if (passes === 3) window.clearInterval(rotation);
+    }, 5200);
+  }
+
+  /* ------------------------------------------------ Editorial reveals -- */
+
+  var media = document.querySelectorAll('[data-media-reveal]');
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    media.forEach(function (el) { el.classList.add('is-shown'); });
+  } else {
+    var mediaObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-shown');
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    media.forEach(function (el) { mediaObserver.observe(el); });
+  }
+
   /* ------------------------------------------------------------ Escape --- */
 
   document.addEventListener('keydown', function (event) {

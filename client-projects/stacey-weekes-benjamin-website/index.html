@@ -22,8 +22,12 @@
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
-  <div class="announcement">
-    <p>Private enquiries, appointments and acquisitions</p>
+  <div class="announcement" id="announcement">
+    <p class="rotator">
+      <span class="is-current">A celebration of presence.</span>
+      <span>An ode to a vibrant heritage.</span>
+      <span>Inspired by Grace.</span>
+    </p>
     <a href="#concierge">Contact the concierge</a>
   </div>
 
@@ -86,7 +90,7 @@
 
     <!-- ─────────────────────────────  THE HOUSE  ───────────────────────────── -->
     <section class="hero" id="house" aria-labelledby="hero-title">
-      <div class="hero-media">
+      <div class="hero-media" data-media-reveal>
         <img src="assets/web/new/website-fashion-images-02.jpg" alt="Model presenting a turquoise Stacey Weekes-Benjamin design on the runway" fetchpriority="high">
       </div>
       <div class="hero-shade" aria-hidden="true"></div>
@@ -125,7 +129,7 @@
 
     <!-- ────────────────────────  THE HOUSE IN MOTION  ──────────────────────── -->
     <section class="campaign" aria-labelledby="campaign-title">
-      <figure class="campaign-main">
+      <figure class="campaign-main" data-media-reveal>
         <img src="assets/web/new/website-fashion-images-01.jpg" alt="Stacey Weekes-Benjamin runway presentation in a grand salon" loading="lazy">
         <figcaption>Runway / The House in Motion</figcaption>
       </figure>
@@ -134,7 +138,7 @@
         <h2 id="campaign-title">Heritage,<br>made visible.</h2>
         <p>Distinctive silhouettes move from the atelier to the runway with assured colour, scale and presence.</p>
       </div>
-      <figure class="campaign-detail">
+      <figure class="campaign-detail" data-media-reveal>
         <img src="assets/web/new/website-fashion-images-05.jpg" alt="Close view of an ivory and monochrome Stacey Weekes-Benjamin design in the atelier" loading="lazy">
         <figcaption>Atelier study / Ivory &amp; monochrome</figcaption>
       </figure>
@@ -156,6 +160,13 @@
       </div>
 
       <div class="product-grid">
+        <article class="collection-note reveal">
+          <p class="section-label">The Collection</p>
+          <h3>Silhouettes curated to honour the female form, from petite to ample.</h3>
+          <p>Executed in rich, tactile fabrications and produced in limited runs, each design is offered privately through the House.</p>
+          <a class="text-link" href="#enquiry-form">Enquire with the concierge <span aria-hidden="true">&#8594;</span></a>
+        </article>
+
         <article class="product reveal"
           data-ref="SWB 001"
           data-name="Design name to be confirmed"
@@ -165,7 +176,8 @@
           data-alt="Printed floor-length design from the Stacey Weekes-Benjamin Collection">
           <div class="product-image">
             <img src="assets/web/img_1020.jpg" alt="Printed floor-length design from the Stacey Weekes-Benjamin Collection" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View design</span>
+            <span class="product-tag">Limited run</span>
+              <span class="product-hover" aria-hidden="true">View design</span>
           </div>
           <div class="product-info">
             <div class="product-id">
@@ -185,7 +197,8 @@
           data-alt="Black and white ruffled gown from the Stacey Weekes-Benjamin Collection">
           <div class="product-image">
             <img src="assets/web/img_1021.jpg" alt="Black and white ruffled gown from the Stacey Weekes-Benjamin Collection" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View design</span>
+            <span class="product-tag">Limited run</span>
+              <span class="product-hover" aria-hidden="true">View design</span>
           </div>
           <div class="product-info">
             <div class="product-id">
@@ -205,7 +218,8 @@
           data-alt="Fuchsia ruffled dress from the Stacey Weekes-Benjamin Collection">
           <div class="product-image">
             <img src="assets/web/img_1022.jpg" alt="Fuchsia ruffled dress from the Stacey Weekes-Benjamin Collection" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View design</span>
+            <span class="product-tag">Limited run</span>
+              <span class="product-hover" aria-hidden="true">View design</span>
           </div>
           <div class="product-info">
             <div class="product-id">
@@ -225,7 +239,8 @@
           data-alt="Purple evening gown from the Stacey Weekes-Benjamin Collection">
           <div class="product-image">
             <img src="assets/web/img_1025.jpg" alt="Purple evening gown from the Stacey Weekes-Benjamin Collection" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View design</span>
+            <span class="product-tag">Limited run</span>
+              <span class="product-hover" aria-hidden="true">View design</span>
           </div>
           <div class="product-info">
             <div class="product-id">
@@ -245,7 +260,8 @@
           data-alt="Red pleated gown from the Stacey Weekes-Benjamin Collection">
           <div class="product-image">
             <img src="assets/web/img_1026.jpg" alt="Red pleated gown from the Stacey Weekes-Benjamin Collection" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View design</span>
+            <span class="product-tag">Limited run</span>
+              <span class="product-hover" aria-hidden="true">View design</span>
           </div>
           <div class="product-info">
             <div class="product-id">
@@ -266,7 +282,8 @@
           data-views="Front and back views photographed">
           <div class="product-image">
             <img src="assets/web/new/website-fashion-images-03.jpg" alt="Front and back views of a grey silk Stacey Weekes-Benjamin design" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View design</span>
+            <span class="product-tag">Limited run</span>
+              <span class="product-hover" aria-hidden="true">View design</span>
           </div>
           <div class="product-info">
             <div class="product-id">
@@ -276,16 +293,17 @@
             <p class="product-meta"><span>Availability to be confirmed</span><strong>Price on enquiry</strong></p>
           </div>
         </article>
-      </div>
 
-      <div class="center-link">
-        <a class="btn" href="#enquiry-form">Enquire about a design</a>
+        <article class="collection-cta reveal">
+          <p>Availability, pricing and private acquisition are arranged personally with the House concierge.</p>
+          <a class="btn" href="#enquiry-form">Enquire about a design</a>
+        </article>
       </div>
     </section>
 
     <!-- ────────────────────────  SWB RIVIERA ROBES  ────────────────────────── -->
     <section class="riviera" id="riviera" aria-labelledby="riviera-title">
-      <div class="riviera-image">
+      <div class="riviera-image" data-media-reveal>
         <img src="assets/web/new/website-fashion-images-04.jpg" alt="Brown and chartreuse SWB Riviera Robe presented on an outdoor runway" loading="lazy">
       </div>
       <div class="riviera-copy">
@@ -339,7 +357,8 @@
           data-year="2027">
           <div class="coat-image">
             <img src="assets/web/new/ooo-asa-coats-01.jpg" alt="Green wave-patterned OOO-AṢA coat" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View coat</span>
+            <span class="product-tag">One of one</span>
+              <span class="product-hover" aria-hidden="true">View coat</span>
           </div>
           <div class="coat-info">
             <small>OOO-AṢA 001</small>
@@ -363,7 +382,8 @@
           data-year="2027">
           <div class="coat-image">
             <img src="assets/web/new/ooo-asa-coats-02.jpg" alt="Black and white striped OOO-AṢA coat with chartreuse accents" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View coat</span>
+            <span class="product-tag">One of one</span>
+              <span class="product-hover" aria-hidden="true">View coat</span>
           </div>
           <div class="coat-info">
             <small>OOO-AṢA 002</small>
@@ -387,7 +407,8 @@
           data-year="2027">
           <div class="coat-image">
             <img src="assets/web/new/ooo-asa-coats-03.jpg" alt="Copper quilted OOO-AṢA coat" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View coat</span>
+            <span class="product-tag">One of one</span>
+              <span class="product-hover" aria-hidden="true">View coat</span>
           </div>
           <div class="coat-info">
             <small>OOO-AṢA 003</small>
@@ -411,7 +432,8 @@
           data-year="2027">
           <div class="coat-image">
             <img src="assets/web/new/website-fashion-01.jpg" alt="Black floor-length OOO-AṢA coat with patterned panels" loading="lazy">
-            <span class="product-hover" aria-hidden="true">View coat</span>
+            <span class="product-tag">One of one</span>
+              <span class="product-hover" aria-hidden="true">View coat</span>
           </div>
           <div class="coat-info">
             <small>OOO-AṢA 004</small>
@@ -432,7 +454,7 @@
 
     <!-- ──────────────────────────  HOUSE PHILOSOPHY  ───────────────────────── -->
     <section class="philosophy" id="philosophy" aria-labelledby="philosophy-title">
-      <div class="philosophy-image">
+      <div class="philosophy-image" data-media-reveal>
         <img src="assets/web/img_1024.jpg" alt="Woman in a fuchsia Stacey Weekes-Benjamin design overlooking the coast" loading="lazy">
       </div>
       <div class="philosophy-copy">
@@ -449,7 +471,7 @@
         <p class="section-label">06 / The Designer’s Voice</p>
         <h2 id="voice-title">“Fashion is both a private sanctuary and a public declaration.”</h2>
       </div>
-      <figure class="portrait reveal">
+      <figure class="portrait reveal" data-media-reveal>
         <img src="assets/web/img_1028.jpg" alt="Portrait of designer Stacey Weekes-Benjamin seated in a black design" loading="lazy">
         <figcaption>Stacey Weekes-Benjamin, Founder and Designer</figcaption>
       </figure>
