@@ -33,6 +33,23 @@ Paths are unchanged from the previous build, so no image work is required:
 
 ## What changed in this revision
 
+**Matched to the Chanel reference pages**
+
+Reviewed against screenshots of chanel.com supplied by the client:
+- Solid brand bar with the wordmark centred and client-service actions at the
+  right; the campaign image begins beneath it rather than running under a
+  transparent header.
+- Campaign overlay centred — eyebrow, large title, statement, then a solid white
+  action button (Chanel's "SEE MORE" / "SEE THE FILM" treatment).
+- Menu drawer in uppercase letterspaced sans with lowercase group labels
+  ("Collections", "Client services") and a tinted contact panel at its base.
+- Enquiry fields are underline-only rules rather than boxed inputs, as on
+  Chanel's "City or zip code" and "Email Address" fields.
+- Airier footer link lists on black.
+
+Serif display type is retained throughout: Chanel sets everything in a
+grotesque sans, but the brief specifies elegant serif headlines for this House.
+
 **Navigation and structure**
 - All seven House sections are now visible in the desktop navigation. The
   previous build hid items five to seven (`House Philosophy`, `The Designer’s

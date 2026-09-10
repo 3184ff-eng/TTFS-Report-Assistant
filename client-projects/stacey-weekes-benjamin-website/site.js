@@ -64,31 +64,6 @@
     if (event.target.closest('a')) closeDrawer(false);
   });
 
-  /* -------------------------------------------- Header state over hero -- */
-
-  var header = document.getElementById('header');
-  var hero = document.querySelector('.hero');
-
-  function syncHeader() {
-    if (!hero) return;
-    var limit = hero.offsetHeight - header.offsetHeight - 20;
-    header.classList.toggle('over-hero', window.scrollY < limit);
-  }
-
-  var ticking = false;
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    window.requestAnimationFrame(function () {
-      syncHeader();
-      ticking = false;
-    });
-  }
-
-  syncHeader();
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', syncHeader);
-
   /* ---------------------------------------------------------- Scrollspy -- */
 
   var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-desktop a'));
