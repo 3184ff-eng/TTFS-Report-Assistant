@@ -2075,6 +2075,14 @@ export default function Home() {
         <div>
           <p className="eyebrow">Trinidad and Tobago Fire Service</p>
           <h1>TTFS Report Assistant</h1>
+          <p className="report-links">
+            <a className="text-link" href="/investigation">
+              Fire Investigation Process Guide
+            </a>
+            <a className="text-link" href="/photo-log">
+              Customer Photo Log
+            </a>
+          </p>
         </div>
         <div className="score-pill" aria-label={`Report quality score ${qualityScore} out of 100`}>
           <span>{qualityScore}</span>

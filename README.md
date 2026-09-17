@@ -22,11 +22,24 @@ OPENAI_FIRE_INVESTIGATION_ASSISTANT_ID=asst_...
 
 ChatGPT Custom GPTs from "My GPTs" are not directly callable from this app by GPT name or GPT link. To make the app behave like your existing fire investigation GPT, paste or summarize that GPT's instructions and preferred workflow into `knowledge/FIRE_INVESTIGATION_GPT_INSTRUCTIONS.md`. The server-side AI routes retrieve from `knowledge/` before calling OpenAI.
 
-The customer photo log is available at:
+## Routes
+
+| Route | App |
+| --- | --- |
+| `/` | TTFS Report Assistant (generate, vet, improve, export the fire report form) |
+| `/investigation` | Fire Investigation Process Guide (staged NFPA 921/1033 investigation workflow) |
+| `/photo-log` | Customer Photo Log |
 
 ```text
+http://localhost:3000/
+http://localhost:3000/investigation
 http://localhost:3000/photo-log
 ```
+
+The Fire Investigation Process Guide walks an investigation through its stages, tracks
+evidence and scene examination entries, and drafts the investigation report. It uses the
+`/api/fire-investigation-agent`, `/api/investigation-report-draft`, and `/api/intake-file`
+routes together with the retrieval notes in `knowledge/`.
 
 ## Quality Gates
 
