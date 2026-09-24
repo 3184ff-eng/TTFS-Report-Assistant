@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { fillReadableGroup, drawCombinedAppendices } from "../lib/pdf-readable-fields";
 
 const tabs = ["Generate Report", "Vet Report", "Improve Report", "Export PDF"];
 const causeClassifications = ["Natural", "Accidental", "Incendiary", "Undetermined"];
@@ -1831,7 +1832,34 @@ async function createFilledOfficialPdf(formData) {
 
   pdfForm.updateFieldAppearances(formFont);
   pdfForm.getTextField("Fire Station").updateAppearances(formBoldFont);
-  addAppendixPages(pdfDoc, formData, formFont, formBoldFont);
+  const overflow = buildOverflowSections(formData).filter(entry =>
+    entry.section === "Owner/Occupier Continued" || entry.section === "Additional Information Continued");
+  const rows = prefix => Array.from({ length: 5 }, (_, i) => `${prefix}${i + 1}`);
+  const readableGroups = [
+    [["Text4"], formData.typeOfProperty, "Type of Property"],
+    [["Text5"], formData.howFireExtinguished, "How Fire Was Extinguished"],
+    [["Text6"], formData.descriptionOfDamage, "Description of Damage"],
+    [rows("Appliances AttendingRow"), formData.appliancesAttending, "Appliances Attending"],
+    [rows("Officers AttendingRow"), formData.officersAttending, "Officers Attending"],
+    [rows("FSSO  FSOs AttendingRow"), formData.seniorOfficersAttending, "FSSO / FSO Attending"],
+    [["Number of Men Attending 1", "Number of Men Attending 2"], formData.personnelAttendingDetails, "Personnel Details"],
+    [["Text1"], formData.professionalsAttending, "Professionals Attending"],
+    [["Text2"], formData.auxiliaryAttending, "Auxiliary Attending"],
+    [["Date"], formData.dateOfReport, "Date of Report"],
+    [["Rank"], formData.rank, "Rank"],
+    ...["Value of Building", "Value of Stock", "Damage to Building", "Damage to Stock"].map(name =>
+      [[name], pdfForm.getTextField(name).getText(), name]),
+    [[1, 2, 3].map(i => `Building and Stock Insured as follows ${i}`), formData.insuranceDetails || formData.valuesDamageInsurance, "Insurance"],
+    [["Text3"], formData.officersObservations, "Officer's Observations"]
+  ];
+  casualtyRows.forEach((row, index) => {
+    [["Name", row.name], ["Brief description of injuries", row.injury], ["Treated by", row.treatedBy]].forEach(([label, value]) => {
+      readableGroups.push([[`${label}Row${index + 1}`], value, `Casualty ${index + 1}: ${label}`]);
+    });
+  });
+  readableGroups.forEach(([names, value, label]) =>
+    fillReadableGroup(pdfForm, names, value, formFont, label, overflow));
+  drawCombinedAppendices(pdfDoc, formData, overflow, formFont, formBoldFont);
 
   return pdfDoc.save();
 }
