@@ -2,7 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { fillReadableGroup, drawCombinedAppendices, takeLines } from "../src/lib/pdf-readable-fields.js";
+import { fillReadableGroup, drawCombinedAppendices, takeLines, completeBoundary } from "../src/lib/pdf-readable-fields.js";
+
+test("continuations use complete sentences or paragraph breaks", () => {
+  const text = "The roof was damaged. The next sentence is too long to fit.";
+  assert.equal(text.slice(0, completeBoundary(text, 35)), "The roof was damaged.");
+  assert.equal(completeBoundary("An unfinished sentence with no punctuation", 20), 0);
+  assert.equal(completeBoundary("First paragraph\n\nSecond paragraph", 20), 15);
+  assert.equal(completeBoundary("Mr. Mills observed smoke.", 8), 0);
+  assert.equal(completeBoundary("Value $500.00 was recorded.", 12), 0);
+});
 
 test("official narrative fields keep 9-12 point text and retain every overflow word", async () => {
   const doc = await PDFDocument.load(readFileSync("public/templates/ttfs-fire-report-form.pdf"));
@@ -14,6 +23,8 @@ test("official narrative fields keep 9-12 point text and retain every overflow w
     form.getTextField(name).enableMultiline();
     const result = fillReadableGroup(form, [name], source, font, name, overflow);
     assert.equal(result.size, 9);
+    assert.ok(result.remaining.startsWith("Observed timber"));
+    assert.ok(result.values[0].replace("[See Appendix]", "").trimEnd().endsWith("roof."));
     const actual = result.values.join(" ").replace("[See Appendix]", "") + " " + result.remaining;
     assert.equal(actual.replace(/\s+/g, " ").trim(), source);
     const rect = form.getTextField(name).acroField.getWidgets()[0].getRectangle();

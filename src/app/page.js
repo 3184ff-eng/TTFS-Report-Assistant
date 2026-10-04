@@ -69,7 +69,9 @@ const incidentTypes = [
   "RTA",
   "MVF",
   "Indiscriminate Burning",
-  "Rubbish Fire"
+  "Rubbish Fire",
+  "Special service",
+  "Unusual Risk"
 ];
 const officialTemplatePath = "/templates/ttfs-fire-report-form.pdf";
 
@@ -113,6 +115,14 @@ const incidentPrompts = {
     "Record the type and approximate quantity of rubbish involved, container or open-area location, and exposures threatened.",
     "Describe the extinguishment method, water used, and whether overhaul or wetting down was completed.",
     "Keep complaints, caller details, and pre-arrival actions in Additional Information."
+  ],
+  "Special service": [
+    "Record the assistance requested, conditions observed, actions taken, and outcome.",
+    "Identify personnel, equipment, hazards, and any agencies involved using confirmed information."
+  ],
+  "Unusual Risk": [
+    "Describe the risk observed, location, persons or property exposed, and precautions taken.",
+    "Record assistance requested, agencies involved, and conditions on departure. Flag unconfirmed hazards."
   ],
   RTA: [
     "Record vehicle count, road/location, persons trapped or injured, extrication actions, and agencies present.",

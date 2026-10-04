@@ -17,11 +17,27 @@ export function takeLines(text, font, size, width, count) {
   return { lines, remaining };
 }
 
+export function completeBoundary(text, capacity) {
+  let boundary = 0;
+  const segmenter = new Intl.Segmenter("en", { granularity: "sentence" });
+  for (const { segment, index } of segmenter.segment(text)) {
+    const end = index + segment.trimEnd().length;
+    if (end > capacity) break;
+    // A final unpunctuated fragment is not a completed sentence.
+    if (/[.!?]["'\u201d\u2019)]*$/.test(segment.trim()) &&
+        !/\b(?:Mr|Mrs|Ms|Dr|St|No|FF|FSO|FSSO)\.$/i.test(segment.trim())) boundary = end;
+  }
+  for (const match of text.matchAll(/\n\s*\n/g)) {
+    if (match.index <= capacity) boundary = Math.max(boundary, match.index);
+  }
+  return boundary;
+}
+
 export function fillReadableGroup(form, names, text, font, label, overflow) {
   const fields = names.map(name => form.getTextField(name));
   const source = String(text || "").trim();
-  function layout(size, marker = "") {
-    let remaining = source;
+  function layout(size, marker = "", content = source) {
+    let remaining = content;
     const values = fields.map((field, index) => {
       const rect = field.acroField.getWidgets()[0].getRectangle();
       const width = rect.width - 6;
@@ -41,6 +57,10 @@ export function fillReadableGroup(form, names, text, font, label, overflow) {
   while (result.remaining && size > 9) result = layout(size -= 0.5);
   if (result.remaining) {
     result = layout(9, "[See Appendix]");
+    const boundary = completeBoundary(source, source.length - result.remaining.length);
+    // Move the whole unfinished sentence to the appendix, including when none fits.
+    result = { ...layout(9, "[See Appendix]", source.slice(0, boundary).trimEnd()),
+      remaining: source.slice(boundary).trimStart() };
     overflow.push({ section: `${label} Continued`, text: result.remaining });
   }
   fields.forEach((field, index) => {
